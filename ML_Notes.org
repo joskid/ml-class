@@ -1,0 +1,1622 @@
+* Lecture 2: Linear regression with one variable
+** Model representation
+Supervised Learning = you have a right answer for each example
+Regression problem = predicting a real-valued output (eg. house price)
+*** Notation
+m = Number of training examples
+x's = "input" variables/features
+y's = "output" variables/"target" variables
+h = hypothesis. a function which maps x -> y.
+
+So the output of a learning algorithm is h.
+h is your hypothesis.
+
+ML is developing this hypothesis automatically. Y'see.
+
+*** The model
+Basic version:
+h(x) = theta0 + theta1*x
+
+(the fact that it's multiplying it by x makes it a linear algorithm).
+so h\theta(x) = theta0 + theta1*x is the hypothesis for univariate
+linear regression (linear regression with one variable).
+
+** Cost function
+\theta-i's = Parameters of your model.
+So the question is: how do you decide the parameters?
+By choosing different parameters, you will get different results for y
+based on the same x. So you want the values for theta which produce
+the y closest to the known training examples. Finding these values is exactly
+what ML is about.
+From the slide: "Choose theta0, theta1 so that h(x) is close to y for
+the training examples". (remembering that h(x) = theta0 + theta1 * x).
+Formally:
+minimise theta0,theta1 so that h(x)-y is small.
+we are going to minimise it so that the squared error is small,
+actually. So that's (h(x)-y)^2. This penalises bad guesses the worse
+they get.
+And because we have multiple training examples, we are going to want
+to calculate the square difference for each training example, and add
+up the differences. So we're taking a list of values (x(i)), and a
+single set of thetas (theta0 & theta1), and getting a single number.
+And again, for no real reason other than to make subsequent math a bit
+easier, we're going to multiply that by 1/(2*m). So it looks like:
+1/(2*m)*sum((h(x(i))-y(i))^2)
+Clear as mud.
+Now don't forget that h(x(i)) means theta0 + theta1*x(i).
+So that is the cost function.
+J(theta0,theta1) = 1/(2*m)*sum((h(x(i))-y)^2)
+
+So now we have a hypothesis which is basically a list of factors we're
+going to apply to X to try to predict Y.
+We also have a way of finding out/describing exactly how good or bad
+this hypothesis is.
+So our overall goal is to apply the cost function to the hypothesis to
+find the hypothesis with the lowest error, then apply the hypothesis
+to new values of X to predict Y. Right? Right.
+
+** Gradient Descent.
+Gradient descent is the name of an algorithm. It's a way of finding the minimum J(theta0,theta1).
+It can actually find the minimum of J(theta0...thetaN).  Outline:
+Start with some theta0,theta1 (often 0,0) Keep changing theta0,theta1
+to reduce J(theta0,theta1) until it doesn't get any smaller.
+
+Note that you're not guessing what theta - your hypothesis - is. You don't think about your problem and go "Hmmm I reckon if we put more weight on the number of bedrooms, and less weight on the square meterage of the house, we'll get a pretty good model". You're saying "Hey computer, I've got the features of bedrooms * m^2, find out what I should do to those numbers to predict the house price". So your domain knowledge is applicable not in terms of guessing the hypothesis, but choosing parameters.
+
+*** The algorithm
+repeat until convergence {
+theta(j) := theta(j) - alpha*(delta/(delta*theta(j)))*J(theta0, theta1)
+}
+for j = 0 and j = 1.
+Note that we need to do simultaneous updates. See how theta0 and theta1 are used in the equation which updates theta0 and theta1? This means we have to say
+temp_theta0 = theta0 - alpha*(delta/(delta*theta0))*J(theta0,theta1)
+temp_theta1 = theta1 - alpha*(delta/(delta*theta1))*J(theta0,theta1)
+then 
+theta0 := temp_theta0
+theta1 := temp_theta1
+then do it again.
+Because if we don't do it that way we overwrite theta0 with the new value before we calculate theta1. This could get ugly.
+
+What's the alpha doing there?
+That's the learning rate. It determines by how much the parameters change between each iteration. Picking a good alpha is one of the tricks. If alpha is very large then the algorithm "takes large steps downhill" and can overshoot the minimum. If alpha is very small the algorithm takes very very small steps downhill and can take forever to converge (well not literally but very inefficient).
+
+How on earth is this working?
+Well remembering that the plot of J(theta0,theta1) is a curve.
+The equation for a given theta0,theta1 takes a line tangent to that point. It looks at the slope (height/width) of that line. 
+*** NOTE: I assume this is what the "derivative term" is doing; I don't really know how that's working; but somehow it does.
+So if the line's slope is positive (bottom left -> top right), the alpha*... part of the equation will be positive. And because the equation says theta0 = theta0 - alpha*..., you'll be subtracting something from theta0, ie. making it smaller. On a graph, this is moving the theta0 parameter to the left; closer to the bottom of the curve. Yeah? Yeah.
+Couple of other things: it automatically "slows down" because as it gets closer to the bottom of the curve, the line gets less steep, so you adjust the parameter less, so you take smaller steps. 
+Also gradient descent will not neccessarily find a global minumum of a function, but we know that J(theta0,thetaN) will only ever have one minimum so we're OK.
+
+** Gradient Descent for Linear Regression
+So the equation delta/(delta*theta(j))*J(theta0,theta1), if theta0,theta1 = (0,1), reduces to:
+j = 0: 1/m * sum(h(x(i))-y(i))
+j = 1: 1/m * sum(h(x(i))-y(i))*x(i) 
+So the catch here is that the derivative function reduces down to something we can more or less understand.
+
+*** The algorithm: Again
+repeat until convergence {
+theta0 := theta0 - alpha*((1/m)*sum(h(x(i))-y(i)))
+theta1 := theta1 - alpha*((1/m)*sum(h(x(i))-y(i)*x(i)))
+}
+don't forget simultaneous updates (using those temp variables)
+
+So that's actually relatively understandable?L
+
+
+* Lecture 4: Linear regression with multiple variables
+** Notation
+m = number of training examples (still)
+n = number of features for each training example. 
+x(sub-n) = the nth feature of training example x.
+y = outcome we're trying to predict
+
+| Size (Feet^2) | No. of Bedrooms | No. of Floors | Age of Home (yrs) | Price |
+|          2104 |               5 |             1 |                45 |   460 |
+|          1416 |               3 |             2 |                40 |   232 |
+|          1534 |               3 |             2 |                30 |   315 |
+|           852 |               2 |             1 |                36 |   178 |
+
+So for the above table: 
+n = 4 (4 attributes (features) per example)
+x (sup-i) = input (features) of the ith training example; the i-th training example. E.g. 
+
+xSup2 = 
+[1416,
+3,
+2,
+40]
+
+x (sup-i)(sub-j) = the j-th value of the i-th training example; x(sup-2)(sub-3) = 2.
+
+It's important to note that x(i) is an n-dimensional vector. A 1*n matrix.
+
+** Multivariate Regression
+Hypothesis: previously, we had h\theta(x) = \theta\sub0 + \theta\sub1*x.  
+Now we have h\theta(x) = \theta\sub0 + \theta\sub1*x\sub1 + \theta\sub2*x\sub2...+\theta\subn*x\subn.
+E.g. for our houses above, it might become
+h(x) = 80 + 0.1*x1 + 0.01*x2 + 3*x3 + -2*x4.
+
+Now so things make sense: x\sub0 = 1.
+x(i)(0) = 1.
+ie. the 0th value of every training example is 1.
+We're basically deciding that every training example has a new first feature with a value of one. This is for convenience; read on...
+x(i) is an n+1-dimensional vector. (n is the number of features per training example)
+
+this means that now we have 
+x = 
+[1,
+x1,
+x2,
+...,
+xN]
+
+Don't forget that theta is a n+1 dimensional vector. So now we also have our parameters:
+
+theta = 
+[theta0,
+theta1,
+...,
+thetaN]
+
+so this means that 
+h(x) = theta0*x0 + theta1*x1 + ... + thetaN*xN. (so we can whack in the x0, because theta0 * 1 is still theta0)
+Which actually turns out to be...
+h(x) = theta (transpose) x.
+Neat huh?! So now we can take our hypothesis vector, transpose it, and get the inner product AKA dot product of that with our training example feature vector and we have calculated our values.
+
+EXCEPT that you have to do that for each training example right? Not the whole matrix? Or maybe you can do it for the whole matrix. Yeah you must be able to right?
+
+** Gradient Descent for Multiple Variables
+repeat until convergence {
+theta(j) := theta(j) - alpha * (1/m*sum((h(x(i))-y(i))*x(i(j))))
+}
+
+That's it. 
+
+Note that the final bit (*x(i(j))) is OK, because all our features' first element is 1 now, remember? 
+
+** Feature scaling
+All features should be in approximately the same range for linear
+descent to work. 
+Further, all ranges should be ideally between -1<=x<=1.
+At most, -3<=x<=3.
+If it's a really big range it'll take too long.
+If it's a really small range it'll take too long.
+If one feature is out of whack with the others it'll take too long.
+So "feature scaling" is to divide each feature by the range (max-min)
+of that feature. 
+** Mean Normalisation
+Mean normalisation goes a step further. You subtract the feature mean from
+the feature's value, then divide that by the range. So if
+you have a set of features
+[89
+72
+94
+69]
+and you want the normalised value of x1(3):
+mean(x) = 81
+range(x) = (94 - 69) = 25
+so normalised value:
+(94 - 81)/25 = 0.52
+I kinda forget what this does but it seems good. Something about
+getting the extreme values in line with the rest.
+
+** The Normal Equation
+The normal equation is a way we can directly solve for the minimum
+J(theta) without having to use gradient descent to get there. The
+normal equation is
+theta = (XtX)^-1*Xty
+where y = ...I forgot what y is. It's an m-vector. 
+This is fine for anything less than say 1,000,000 examples with
+200,000 features. After that gradient descent is better because it's
+too slow to transpose the matrix.
+
+* Lecture 5: Octave tutorial
+Use it
+whos displays all variables with their details.
+ranges are done by 1:0.2:2
+indexes are y = x(1:10)
+** Functions
+Functions are defined in separate files (!). Files must be in the
+pwd. (Must end in .m?)
+addpath() adds a dir to the octave search path. Handy for these func
+files.
+
+OK so this is now a "cost function" thing.
+
+*** Example of the cost function on basic set
+X = [1 1;1 2;1 3]; % our training set
+y = [1;2;3]; % our predicted values
+theta = [0;1]; % our hypothesis
+
+costFunctionJ.m
+
+function J = costFunctionJ(X, y, theta)
+
+% X is the "Design matrix" contaning our training examples
+% y is the class labels (ie predicted values?)
+
+m = size(X,1); % get the number of rows in X; the number of training
+examples
+predictions = X*theta; % the predictions given the hypothesis
+sqrErrors = (predictions-y).^2; % square the error for each element
+
+J = 1/(2*m) * sum(sqrErrors); % This is the equation for the cost
+function itself
+
+** Vectorisation
+Vectorisation just means... use inbuilt methods?
+Using the example of the equation for the hypothesis vs. ThetaTx.
+(because that uses the inbuilt matrix multiplication methods)
+OK so that's not what vectorisation means. It means doing vector-wise
+operations where possible instead of summing elements individually. So
+you have to put parameters into vectors and just add & subtract the
+vectors rather than operate on each member of a vector at a time (if
+that makes sense).
+I think I need to get into the vibe of this whole vector business.
+
+* Lecture 6: Logistic Regression
+Logistic Regression is a powerful and widely used classification algorithm.
+** Classification
+spam/not spam
+fraud/not fraud
+malignant/benign
+So the y we're trying to predict is either 0 or 1 (negative or positive).
+(although it can be "multiclass" eg. 0,1,2,3)
+You need a different algorithm for classification (eg. predicting discrete y) because applying linear regression doesn't really make sense. Eg. if you say "well if you say h(x) >= 0.5 then call it 1", you get some weird results; the linear fit will never look good on your classified problem. Not flexible enough.
+Another property of linear regression is that h(x) can be <0 and >1. This is bad.
+Logistic regression is always 0<=h(x)<=1.
+** Hypothesis representation
+What's the function which will represent our hypothesis?
+Note that 0<=h(x)<=1
+
+h(x) = g(theta transpose x)
+g(z) = 1/(1+e^-z)
+z is a real number
+(what's e?)
+
+g is the "sigmoid function" aka "logistic function"
+
+this reduces to:
+
+h(x) = 1/1+e^(-theta transpose x)
+*** Interpretation of hypothesis output
+h(x) = estimated probability that y = 1 on input x
+Example: if
+x = [x0;x1] = [1;tumorSize] ; note that x0 = 1 is a hangover of vectoring
+h(x) = 0.7
+There is a 70% chance of tumor being malignant given patient with features x.
+The way of notating that:
+h(x) = P(y=1|x;theta)
+which means "probability that y = 1, given x, parameterised by theta". The "parameterised by theta" part basically means "given this set of assumptions".
+** Decision Boundary
+So, suppose that we predict y = 1 if h(x) >= 0.5 and predict y = 0 if h(x) < 0.5.
+Given the plot of the sigmoid function, currently we get y = 1 whenever z (of g(z) fame) is >0.
+So that means that h(x) is going to be >= 0.5 (and therefore predict y=1) whenever theta transpose x is >= 0.
+An example:
+h(x) = g(theta0 + theta1*x1 + theta2*x2)
+let's say theta = [-3;1;1]
+so that turns out to mean "predict 'y=1' if -3 + x1 + x2 >= 0".
+Which again boils down to 
+y=1 if x1 + x2 >= 3
+(see? take the -3, put it on the other side & change the sign; 0 + 3 = 3)
+So all that becomes that graph thing.
+The line determined by x1 + x2 = 3 is a straight line. This line divides the plot into y=1 and y=0 regions. This line is called the decision boundary.
+The decision boundary is a property of the hypothesis (theta). NOT of the data (x).
+*** Non-linear decision boundaries
+    Basically currently we have a linear (just saying x1+x2) boundary. Literally a line on a plot. You can have higher-order parameters (hypothesis) eg. theta0 + theta1*x1 + theta2*x2 + theta3*x1^2 + theta4*x2^2. This will result in non-linear decision boundaries (that one's a circle given theta = [-1;0;0;1;1]). Using crazy polynomials (theta3*x^3 for example) can get you crazy potato-shaped decision boundaries.
+** Cost function
+How to fit the parameters, theta.
+So if we go back to our linear regression cost function, remember that J(theta) is the value of the sum of the squared differences between our hypothesis' prediction vs. the actual values. In linear regression, if you plot this for many values of theta you get a convex curve. That's why gradient descent works because there are no local optima.
+However, using a different hypothesis - like the one for logistic regression - that version of J(theta) is non-convex. So this won't work with gradient descent.
+*** Logistic regression cost function
+Cost(h(x),y) = -log(h(x)) if y = 1; -log(1-h(x)) if y = 0
+So this means that:
+if h(x) = 1 and y = 1, ie. if the hypothesis predicts the exactly correct outcome, then the cost will be 0 (which makes sense; you want a low cost for a good prediction). However as h(x) approaches 0; that is the further away from 1 the prediction is, the larger the cost becomes (on a log scale - steep curve). 
+if y = 0, it's the opposite; because -log(1-h(x)) means that as h(x) approaches 1, -log(1-h(x)) approaches infinity. Meaning a very high cost on a prediction close to 1 on an example that's supposed to be 0.
+So this cost function *is* convex.
+** Simplified Cost Function and Gradient Descent
+*** Logistic Regression cost function (current)
+J(theta) = 1/m * sum(cost(h(x),y))
+cost(h(x),y) = -log(h(x)) if y = 1; -log(1-h(x)) if y = 0
+Noting that y = 0 or 1 only
+*** cost function simplification rationale
+cost(h(x),y) = -y*log(h(x)) - (1-y) * log(1-h(x))
+why?
+consider y = 1.
+cost(h(x),1) = -1 * log(h(x)) - (0) * log(1-h(x))
+cost(h(x),1) = -1 * log(h(x)) - 0
+cost(h(x),1) = -log(h(x))
+
+now consider y = 0.
+cost(h(x),0) = -0*log(h(x)) - (1-0) * log(1-h(x))
+cost(h(x),0) = 0 * -1 * log(1-h(x)
+cost(h(x),0) = -log(1-h(x))
+
+*** Logistic Regression Cost Function (final)
+J(theta) = 1/m * sum(cost(h(x),y))
+reduces to
+J(theta) = -(1/m * [sum(y*log(h(x)) + (1-y)*log(1-h(x)))])
+
+So now we have to minimise J(theta) to get theta so we can apply our logistic regresson function.
+
+*** Gradient Descent for Logistic Regression
+Repeat {
+thetaJ := thetaJ - alpha*sum( (h(x(i))-y(i)) * x(i)J)
+} (simultaneously update all thetaJ)
+
+OH SHIT IT'S THE SAME AS LINEAR REGRESSION!
+
+So what's the difference?
+h(x).
+
+Before we were using h(x) = theta transpose x.
+Now we're using h(x) = 1/(1+e^-(theta transpose x)).
+
+**** Vectorised implementation
+theta := theta - alpha * 1/m * sum([(h(x(i))-y(i)) . x(i)])
+work that shit out. That's what I was trying to do. What's with the square brackets?
+** Advanced Optimisation
+Basically this is saying we are implementing gradient descent as its own optimisation function. There are other algorithms though and lots of languages including Octave have built-in function optimisation functions which we can use instead of our homebrew one. So we still define J(theta) and theta, but get some other library to compute optimal theta. There is some example code; basically you need to write a function which will define the cost function and the gradient calculation for each parameter, then pass that function to the Octave optimisation one (so that it knows what it's optimising).
+** Multiclass classification: One vs All classification
+When y can take a small number of discrete values. So email = work, friends, family, hobby or weather = sunny, cloudy, rain or snow.
+
+The One-vs-all method basically splits the classes up and runs them seperately. So we end up with 3 classifiers. Specifically: P(y = i | x; theta(i)) where i = no. of classes.
+So for class 1 we have "probability that y is 1", for class 2 we have "prob. that y is 2" etc.
+We have to train a logistic regression classifier h(i)(x) for each class i to predict the probability that y = i.
+
+* Lecture 7: Regularisation & Overfitting
+** What's overfitting?
+Underfitting is when the prediction doesn't fit the terms very well (ie. a straight line plot through a curve of points). Also can say it has "high bias".
+Overfitting is where you twist & curve your line to pass exactly through your boundary points using crazy high-order polynomials. This is not good. Also has "high variance". So it fits the training set very well, but it fails to generalise to new examples. (eg. to predict prices on new examples).
+** Addressing overfitting
+It's not always possible to just plot the data and eyeball it, especially with lots of features.
+Overfitting can become an issue especially when there are few training examples and many features.
+Options:
+1. Reduce the number of features.
+   1. Manually select which features to keep
+   2. Model selection algorithm (later in the course...)
+2. Regularisation.
+   1. Keep all the features, but reduce the magnitude/values of parameters theta(j).
+   2. Works well when we have a lot of features, each of which contributes a little to predicting y.
+** Regularised Linear Regression
+So basically you change your gradient descent algo to be
+theta := theta * (1 - a*lambda/m) - alpha * 1/m * sum(h(x)-y)*x
+note that (1-a*lambda/m) thing. that's the regularisation bit.
+So (alpha*lambda/m) is always going to be small, and 1-that is basically always going to be a number close to 1 but not quite 1. So effectively you're "shrinking" the parameter before it gets updated as normal. Just reduces it every time.
+Note that this applies only to theta1+; not theta0. Recall that the hypothesis is something like theta0 + theta1x1 + theta2x2... so we don't want to reduce theta0 because it's not acting on x.
+** Regularised Logistic Regression
+Similar idea. You change the cost function J(theta) to have + lambda/2m * sum(thetaj^2) at the end (but not for theta0).
+*** Gradient descent with regularisation
+The algo becomes
+repeat {
+theta0 := theta0 - alpha * 1/m * sum(h(x)-y)*x0
+thetaj := thetaj - alpha * 1/m * sum(h(x)-y)*xj - lambda/m * thetaj
+}
+.
+*** Advanced optimisation with regularisation
+Recall that to use the inbuilt solvers, we need a function that does 2 things: contains the code to compute J(theta), and calculates the partial derivative for each thetaJ.
+So now, our cost function calculation has to include the lambda bit.
+Also, each gradient calculation - except theta0 - must have the -lambda/m*thetaj on the end of it.
+Specifically:
+gradient(1) = 1/m * sum(h(x(i)) - y(i)) * x(i)(0)
+gradient(2) = (1/m * sum(h(x(i)) - y(i)) * x(i)(1)) - lambda/m * theta1
+etc.
+* Lecture 8: Neural Networks
+** Non-linear hypothesis
+*** Why use a non-linear hypothesis?
+If have complex data (looking at the x's & o's with the jet of o's into the x's) we could maybe use an overly-complex polynomial to fit the data.
+But what if you have more than 2 features?
+So polynomials go like
+x1^2, x1x2, x1x3, x1x4 ... x1x100
+x2^2, x2x3 ...
+(these are 2nd-order terms - product of individual features)
+Suddenly you have 5,000 features if you have 100 features if you're using 2nd-order polynomials to fit the data. This can lead to overfitting and computational expense.
+So, you could include a subset (eg. only the squares); but this isn't fitting enough. 
+If you start including cubic (3-rd order polynomial - x1^3, x1x2x3, etc) then you get 170,000 features... etc.
+Generally we use many, many features.
+*** Car detection
+So if we say "What is this?" and have a picture of a car. 
+We see a car. Computer "sees" matrix of pixel values. Computer needs a hypothesis to turn the pixel value matrix into a classification. E.g. does this matrix of pixel intensity values represent a door handle?
+So consider a 50x50 pixel image. This represents 2500 features. So each image will be a vector of n=2500 where each feature is a pixel intensity of 0-255 (for a greyscale image!).
+If we then chose to use quadratic features in our hypothesis (that's x(i) * x(j)), we end up with approx 3 million features per image. This is unreasonable, especially for such a tiny image.
+So overall, logistic regression tends to fall over when you have a large number of features.
+** Neurons and the Brain
+Neural networks were originally developed to imitate the brain. Here's some background.
+Were very widely used in 80s and 90s. Got less popular in the late 90s. Have had a recent resurgence, and are the current state-of-the-art technique for "many applications" (which ones?)
+There's a theory that the brain only has one "learning algorithm" for all its processes; auditory, touch, sight etc. There is some evidence for this - studies have been done which "cuts the wire" from your ears to your auditory cortex, and replaces it with the wire from your eyes, the animal can still see - that is the auditory cortex learns to see.
+** Model Representation
+*** Hypothesis representation
+What's a neuron called?
+Input wires: dendrites
+Output wire: axon
+So you take input on dendrites, perform some computation on them, and send the output of computation through your axon. Which is connected to someone else's dendrite...
+*** Neuron Markup
+A "neuron" is abstracted to be a logistic unit.
+Blue circles containing x1,x2,x3 are "dendrites"
+all feeding into a yellow circle (the "cell body")
+outputting one  value on its "axon".
+That diagram represents:
+h(x) = 1/1+e^(-theta T x) ## this is the sigmoid again
+where theta & x are vectors.
+Note: sometimes there will be an extra blue circle, x0. This is the "bias unit" and is always = 1.
+This describes a *Sigmoid (logistic) activation function*.
+In neural network literature, the parameters are sometimes called weights.
+*** Neural Network
+So that describes a neuron. Inputs, computation (sigmoid), output.
+A Neural Network is a system of neurons strung together.
+**** Markup
+Blue circles: x1, x2, x3: Layer 1: Input Layer. Each of them feeds into each of the inputs of...
+Yellow circles: a(2)\sub1, a(2)\sub2, a(2)\sub3: Layer 2: Hidden Layer. The outputs of each of these feeds into the inputs of...
+One yellow circle: Layer 3: Output Layer.
+**** Notation
+a \sup((j)) \sub(i): "activation" of unit i in layer j. Concretely: a(2)1 = the activation of the first unit ("neuron") in layer 2. "Activation" means the value which is output by a specific unit. I will write this as a(j)i.
+THETA\sup((j)): matrix of weights controlling function mapping from layer j to layer j+1. (that's capital theta). I will write this as THETA(j).
+
+Dimensions of THETA: if network has s\subj units in layer j, s\subj + 1 units in in layer j + 1, then THETA\sup((j)) will be of dimension s(j+1) x (have  sj+1).
+*** Vectorised Implementation of Hypothesis
+so. Recall:
+*Note*: THETA(1)10 is saying "THETA(1),1,0". e.g. element 1,0 of the THETA of the first layer of the network.
+a(2)1 = g(THETA(1)10*x0 + THETA(1)11*x1 + THETA(1)12*x2 + THETA(1)13*x3)
+now let's say
+z(2)1 = THETA(1)10*x0 + THETA(1)11*x2 + THETA(1)12*x2 + THETA(1)13*x3
+therefore
+a(2)1 = g(z(2)1)
+with me? (not really argh!)
+
+And the same for the other a(j)i's. So a(2)2 = g(z(2)2) and a(2)3 = g(z(2)3).
+I'm pretty sure that this is the calculation which is happening on the i'th unit/neuron on the j'th level of the network.
+
+OK so. This is a vector multiplication believe it or not.
+
+so:
+x = 
+[x0
+x1
+x2
+x3]
+
+z(2) = 
+[z(2)1
+z(2)2
+z(2)3]
+
+We can vectorise this:
+z(2) = THETA(1) * x
+a(2) = g(z(2)) ## Note this would apply the sigmoid function element-wise to each of z(2)'s elements.
+
+So a(2) is going to be a vector, containing the results of the computations of each unit of layer 2, given the inputs x.
+
+Now to abstract that eeeeven more:
+we can consider x to be the result of the activations of the first layer. So rather than x, we can consider it a(1); eg. the vector containing the results of the computations of each unit; except this time there just so happened not to be any computation. Which makes the above equation even cleaner:
+
+z(2) = THETA(1) * a(1)
+a(2) = g(z(2))
+
+Now, our final layer needs an a(2)0. So we need to add a(2)0 = 1. So now a(2) is a 4-dimensional vector instead of a 3-dimensional vector. Right? It was 3 because we have 3 units/neurons, so we have 3 outputs. Now it's 4 because we need a 1 at the start to make everything else work.
+
+So our final thing:
+z(3) = THETA(2)*a(2)
+h(x) = a(3) = g(z(3)).
+Note that h(x) is a real number, not a vector. (BUT I DON'T KNOW WHY)
+
+*** Neural Network learns its own features.
+So ultimately h(x) = g(theta0*x0 + theta1*x1 + theta2*x2 + theta3*x3)
+which is the same as logistic regression.
+However note that the inputs to the final h() are NOT the initial parameters X. They are a1, a2, a3 - the result of the "Hidden layer". 
+So what this means is, you give it some features, but then the model decides which features get passed to the final function.
+
+*** Other network Architectures
+Note that you could have a 4-layer architecture. Eg. X -> a(2) -> a(3) -> a(4)=h(x).
+** Examples (thank christ)
+*** Simple example: AND
+x1 & x2 are binary.
+y = x1 AND x2
+
+Can we get a 1-unit network to compute this AND?
+
+We're going to use the bias element (the "1" as x0)
+
+So we have 3 blue circles going into 1 yellow circle (which is h(THETA)(x)).
+The lines have (from top to bottom) weights of -30, 20, 20.
+So this means that h(THETA)(x) = g(-30 + 20*x1 + 20*x2).
+(Which is the same as saying h(THETA)(x) = g(THETA(1)10 + THETA(1)11*x1 + THETA(1)12*x2).)
+Consider that formula. This means:
+| x1 | x2 | h(x)        |
+|  0 |  0 | g(-30) ~= 0 |
+|  0 |  1 | g(-10) ~= 0 |
+|  1 |  0 | g(-10) ~= 0 |
+|  1 |  1 | g(10) ~= 1  |
+Therefore the model will compute 1 (ie. true) if & only if both x's are 1: this is the AND function.
+*** Let's do OR.
+THETA(1) = 
+| -10 |
+|  20 |
+|  20 |
+
+x = 
+| 1 |
+| ? |
+| ? |
+
+h(THETA)(x) = g(THETA(1)10 * 1 + THETA(1)11*x1 + THETA(1)12*x2)
+
+so consider different values of x1 & x2.
+| x1 | x2 | h(THETA(x)) |
+|  0 |  0 | g(-10) ~= 0 |
+|  1 |  0 | g(10) ~= 1  |
+|  0 |  1 | g(10) ~= 1  |
+|  1 |  1 | g(30) ~= 1  |
+
+therefore that value of parameter THETA produces the OR function.
+
+*** NOT
+THETA = 
+|  10 |
+| -20 |
+
+| x1 | y          |
+|  0 | g(10) ~= 1 |
+|  1 | g(-10) ~=0 |
+
+so if x = 0, the function returns 1; so true if it's not there; so NOT.
+
+*** x1 XNOR x2
+Recall XNOR is "NOT (x1 XOR x2)"
+so let's use AND, (NOTx1) AND (NOTx2), & OR.
+
+layer 1 =
+|  1 |
+| x1 |
+| x2 |
+
+layer 2 = 
+| a(2)1 |
+| a(2)2 |
+
+layer 3 = 
+| a(3)1 = hTHETA(x) |
+
+THETA(1):
+| -30 |  10 |
+|  20 | -20 |
+|  20 | -20 |
+THETA(2):
+| -10 |
+|  20 |
+|  20 |
+
+so, note that THETA(1) col 1 is equiv. to the weights of the AND function, and col 2 is equiv. to the weights of the (NOT x1) AND (NOT x2) function.
+THETA(2) is equiv to the OR function.
+
+Here's a truth table for this. Pay attention.
+| x1 | x2 | a(2)1 | a(2)2 | a(3)1 / hTHETA(x) |
+|----+----+-------+-------+-------------------|
+|  0 |  0 |     0 |     1 |                 1 |
+|  0 |  1 |     0 |     0 |                 0 |
+|  1 |  0 |     0 |     0 |                 0 |
+|  1 |  1 |     1 |     0 |                 1 |
+|----+----+-------+-------+-------------------|
+
+Got it? So by putting the OUTPUTS of binary functions into the INPUTS of another one, you happily get the XNOR function, but you need two layers, ne?
+
+So more generally:
+you have your inputs, then you have a hidden layer which computes pretty straightforward outcomes, but the third layer can come to more complex conclusions given the same inputs. So you're effectively creating more refined, useful features every iteration.
+
+** Multi-class classification
+Easy example is handwritten digit recognition. 10 possible classes. Which is it?
+Using Neural Nets it's possible to have an output of your hypothesis which is a vector, an n-dimensional vector where n = number of possible classes. Right? So for handwriting you can have
+hTHETA(x) = 
+| 1 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+if it decides it's looking at a 0, and
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 0 |
+| 1 |
+| 0 |
+if it decides it's looking at an 8, etc.
+*** Representation
+Note that previously with multiclass classification, our training examples had y = 1,2,3 or 4. Remember? So we tried to get a model which returned 1,2,3 or 4 to indicate which class it was in.
+
+With this, our training examples have y = [1,0,0,0] or y = [0,1,0,0] etc (for a 4-class problem). so y is a vector for the training examples (makes sense if you have to have y as a vector for the output).
+
+(so far, so... ok?) 
+
+* Lecture 9: Neural Networks: Learning
+** Cost Function
+*** Notation
+{(x(1),y(1)),(x(2),y(2)),...,(x(m),y(m))}
+so m = number of training examples.
+L = total no. of layers in network (including inputs & final layer; so a 3-layer network has 1 hidden layer)
+s\subl = no. of units (*not* counting bias unit) in layer l. This implies each layer can have different no. of units.
+**** Binary classification
+y = 0 or 1
+only 1 output unit.
+h(THETA)(x) will be a real number.
+s\subl = 1. (one output unit).
+K = 1.
+**** Multi-class classification
+K classes.
+y is a K-dimensional vector. (right? so [0,1,0,0] for a 4-class problem.)
+K output units. so s\subl = K.
+(noting that K >= 3 otherwise it'd just be binary)
+*** The cost function
+Some more notation:
+h(THETA)(x) = K-dimensional vector
+so
+(h(THETA)(x))\sub-i = i-th element of the output.
+
+"holy cuntballs".
+h(THETA)(x) = K-dimensional vector. (K = no. of classes)
+h(THETA)(x)\subi = i-th element of the output of the neural network.
+
+"summation over K output units"
+"summing that cost function over each of my K output units in turn"
+taking the value of the Kth output unit and comparing it to y(k).
+So we must have to predict the outcome, unroll it into a vector so we
+get class numbers, and compare that to the y vector which has class
+numbers.
+NO WAIT
+y is "one of those vectors saying which class it should be:
+0
+0
+1
+0
+"
+So we DO need y to be a vector showing which class it should be.
+
+reg term:
+summing the value THETA(l)ij for all values of l, i, j. Except where
+i=0 (bias unit).
+
+
+Note that:
+We need to not only calculate J(theta), but we'd have to calculate the derivatives for every i, j, l.
+** Backpropagation Algorithm
+Minimises the cost function.
+so we need to write code which takes the parameters THETA, and computes J(THETA) and the derivative terms of each THETA(l)subi,j. 
+The parameters of a neural network are THETA(l)i,j : this is a real number. an element of the matrix.
+*** Gradient computation
+Given one training example (x,y):
+Forward propagation. See "Model representation" above.
+a(1) = x.
+z(2) = THETA(1)*a(1).
+a(2) = g(z(2)), and add a(2)0 = 1.
+z(3) = THETA(2)*a(2)
+a(3) = g(z(3)), and add a(3)0 = 1.
+z(4) = THETA(3)*a(3)
+a(4) = g(z(4)) = h(THETA)(x).
+Remember this? Pretend it makes sense?
+*** "Intuition"
+delta(l)\subj = "error" of node j in layer l.
+(delta, like timedelta, got it)
+handy reminder: a(l)\subj = activation of j-th unit in l-th layer.
+
+so consider a L=4 network.
+
+delta(4)j = a(4)j - yj
+
+is the difference between the output of the j-th element in the 4th (final) layer, and the known value of the j-th element.
+
+vectorise it!
+delta(4) = a(4) - y
+right? so the delta of the final layer is the difference between the predicted output and actual output.
+
+now to backpropagate!
+d(3) = (THETA(3))transpose*delta(4).*g'(z(3))
+d(2) = (THETA(2))transpose*delta(3).*g'(z(2))
+
+wtf is that g'(z(3))?
+a(3).*(1-a(3))
+where 1 is the vector of 1's. (?!)
+a(3) is the vector of activations for the 3rd layer.
+
+so g'(z(l)) means "calculate the derivative of z(l)". How do you calculate the derivative? using the formula
+a(l) .* (1-a(l))
+...at least I'm pretty sure.
+
+there is no d(1). irrelevant.
+
+now we've computed our deltas, we can use them to calculate the derivatives of the elements of THETA. by:
+a(l)j*d(l+1)i.
+"trust me on this". also, that ignores lambda (the regularisation term)
+*** Backpropagation Algorithm
+Training set {(x(1),y(1)),...,(x(m),y(m))}
+
+- Set DELTA(l)i,j = 0 for all l,i,j. (This will be used to compute the derivatives later)
+- For i = 1 to m: (so for the i-th iteration, we'll be using the training example (x(i),y(i))
+  - Set a(1) = x(i). (ie. use the inputs as the 1st layer. the blue circles.)
+  - Perform forward propagation to compute a(l) for l = 2,3,..,L (ie. get the answer)
+  - Use y(i) to compute delta(L) = a(L) - y(i) (ie. get the difference between the prediction & the actual. remember a(L) is the final output)
+  - Using delta(L), compute delta(L-1),delta(L-2),...,delta(2) (ie. backpropagate your deltas as described above)
+  - Assign DELTA(l)i,j to DELTA(l)i,j + a(l)j*delta(l+1)i (so at first this will be 0 + a(l)j*delta(l+1)i)
+    - this is vectorised as: DELTA(l) := DELTA(l) + delta(l+1) * (a(l))transpose
+Now we can calculate the derivatives:
+- D(l)i,j := 1/m*DELTA(l)i,j + LAMBDA*THETA(l)i,j if j!=0 (ie. not the bias term!)
+- D(l)i,j := 1/m*DELTA(l)i,j if j = 0 (ie. for the bias term
+
+so it turns out that D(l)i,j is the deriviative of THETA(l)i,j. That's how you calculate the derivative terms for your optimisation algorithms.
+
+So we have the cost function (given by that mammoth equation) and the derivatives. So now we can get matlab/octave to optimise the cost function for us. Which will return a set of THETA with the lowest cost. Which will be the parameters we can use on our actual model.
+
+*** Implementation note: Unrolling parameters
+So remember when we're using the octave function solvers, we need:
+function [jVal, gradient] = costFunction(theta)
+optTheta = fminunc(@costfunction, initialTheta, options)
+right?
+The trick is that is, these functions require initialTheta & theta to be *vectors*.
+In a Neural Network (L=4):
+THETA(1),THETA(2),THETA(3) = matrices! (Theta1, Theta2, Theta3)
+D(1),D(2),D(3) = matrices! (D1,D2,D3)
+
+We need to "unroll" these into vectors.
+
+OK, some dimensions.
+Neural Network (L=3)
+s1 = 10, s2 = 10, s3 = 1. ## layer 1 has 10 elements, layer 2 has 10 elements, layer 3 has 1 elem.
+THETA(1) is 10x11 dim
+THETA(2) is 10x11 dim
+THETA(3) is 1x11 dim.
+D(1) is the same.
+How do we "unroll" these into vectors?
+using octave:
+thetaVec = [ Theta1(:) ; Theta2(:) ; Theta3(:) ] # so this will unroll each matrix and stack them on top of each other)
+DVec = [D1(:);D2(:);D3(:)] # same
+
+then to roll them back up:
+Theta1 = reshape(thetaVec(1:110),10,11) #take the first 110 (10x11) items and put it into a 10x11 matrix)
+Theta2 = reshape(thetaVec(111:220),10,11) #the next bit
+Theta3 = reshape(thetaVec(221:231),1,11) # the final bit
+**** Concrete example
+Have initial parameters THETA(1),THETA(2),THETA(3).
+Unroll to get initialTheta to pass to fminunc(@costFunction, initalTheta, options).
+Note that we need the cost function! So:
+function [jval, gradientVec] = costFunction(thetaVec)
+so our function is accepting a vector parameter, but implemented using matrices.
+From thetaVec, get THETA(1),THETA(2),THETA(3).
+Use forward prop/back prop to compute D(1),D(2),D(3) & J(THETA) (for each theta?)
+Unroll D(1),D(2),D(3) into gradientVec and spit it out. 
+** Gradient Checking
+Backprop is a fiddly algorithm and can be tricky to implement.
+Specifically there are several ways to have small bugs which are hard to detect. This leads to worse performance rather than ultimate failure.
+Gradient Checking can help to identify these bugs. Results in a high confidence of correctness of forward/backprop.
+*** Numerical estimation of gradients.
+So to estimate the derivative of the cost function (slope):
+you can take theta on X axis and J(theta) on Y axis.
+Now we'll take a point either side of J(theta) and work out the slope of that line. Right?
+(slope = height/width)
+So the height is going to be (J(theta+epsilon) - J(theta-epsilon))/2*epsilon
+noting that J(theta-epsilon) is just to the left of J(theta) and J(theta+epsilon) is just to the right. and the width is 2 epsilons wide (1 on either side).
+Usually use epsilon = 10^-4. (0.0001)
+So, implement
+gradApprox = (J(theta + EPSILON) - J(theta-EPSILON))/(2*EPSILON)
+*** Estimation when theta is vector
+
+basically you do that for every element of theta. 
+Octave time!
+
+- for i = 1:n, #n = length of parameter vector. unrolled parameters.
+  - thetaPlus = theta;
+  - thetaPlus(i) = thetaPlus(i) + EPSILON;
+  - thetaMinus = theta;
+  - thetaMinus(i) = thetaMinus(i) - EPSILON;
+  - gradApprox(i) = (J(thetaPlus) - J(thetaMinus)) / ( 2*EPSILON);
+- end;
+
+now we have "numerically computed the approximate partial derivatives".
+*** Why?
+Compare this to DVec. Hopefully gradApprox ~= DVec. 
+Note that backprop is a much more efficient way of getting derivatives. So we'll do the gradApprox and compare with results of DVec early on to make sure DVec is correct ie. backprop is implemented correctly. Then we'll turn it off and just use DVec.
+
+Concretely:
++ Implement backprop to compute DVec with unrolled D(1),D(2),D(3)
++ Implement numerical gradient checking to compute gradApprox
++ Make sure they have similar values
++ Turn *off* gradient checking. Use backprop code for actual learning. Otherwise: NASTY SLOW.
+
+So do it for 1 or 2 iterations of gradient descent (or whatever) then turn it off.
+
+** Random Initialization
+*** The Problem
+You need an initial value of theta, right?
+So in gradient descent we started with zeros(n,1) right?
+But zeros(n,1) doesn't work with neural networks.
+Why not?
+a(2)1 & a(2)2 will compute the same output because they have the same weights. And so on and so on.
+This is bad because all weights will always be the same no matter the iterations.
+As such it will never converge, you will never reduce the cost. (right?) And/or it's just dumb. Well what happens is that effectively your final layer only ever sees 1 input (because the output of all things prior will be the same).
+
+*** The solution: Random initialization AKA symmetry breaking.
+Initialise each THETA(l)i,j to a random value between -epsilon and +epsilon.
+code:
+Theta1 = rand(10,11)*(2*INIT_EPSILON) - INIT_EPSILON;
+Theta2 = rand(1,11)*(2*INIT_EPSILON) - INIT_EPSILON;
+
+rand(10,11) is randoms between 0-1
+multiplying that by 2*epsilon and subtracting epsilon produces numbers between -epsilon & epsilon (somehow)
+
+(note this epsilon has nothing to do with gradient checking epsilon, it's just "another small number")
+
+** Putting it together
+*** Training a neural network
+- Pick a network architecture
+  - (connectivity between neurons, eg. 3,5,4, 3,5,5,4, etc)
+  - How do you make these choices?
+  - No. of input units: dimension of features x(i)
+  - No. of output units: number of classes in your classification problem
+    - eg. a 10-d vector for handwritten digit recognition.
+  - No. of hidden units: reasonable default of 1 hidden layer.
+    - If using >1, have same number of hidden units in every hidden layer.
+    - Usually, the more hidden units the better. Just gets more
+      computationally expensive.
+**** The steps
+1. Randomly initialise weights
+   - usually between +-epsilon
+2. Implement forward propagation to get hTHETA(x)
+3. Implement code to compute cost function J(THETA)
+4. Implement backprop to compute partial derivatives of J(THETA)
+   * Use a for loop!
+     * for i = 1:m
+       * perform forward propagation and backpropagation using example (x(i),y(i))
+       * get activations a(l) and delta terms delta(l) for l = 2,...,L.
+5. Use gradient checking to compare the backprop-derived partial
+   derivatives against the numerically estimated ones.
+6. Disable gradient checking.
+7. Use gradient descent or advanced opimisation method with
+   backpropagation to try to minimize J(THETA) as a function of
+   parameters THETA.
+* Lecture 10: Advice for applying machine learning
+** Deciding what to try next
+Don't try shit that doesn't make sense.
+How to choose a most promising avenue for pursuit?
+
+So let's say we've implemented regularised linear regression to predict housing prices, but when we test the learned parameters on a new set of houses, it makes unacceptably large errors. What next?
+- More training examples?
+  - Doesn't always help.
+- Try smaller set of features? Carefully select a subset to prevent overfitting?
+- Or conversely, try using/getting additional features?
+- Try polynomial features...
+- Increasing/decreasing lambda...
+You don't have to go by "gut feeling" to choose one of these avenues.
+At the very least, we can rule some of them out.
+
+** Machine learning diagnostics
+A test you can run to determine what is/isn't working in an algorithm, and what might improve its performance. 
+
+Note that it can take some time to implement diagnostics; but it's usually less time than working out by trial & error what will & won't work.
+
+** Evaluating a Hypothesis
+So we know that hypotheses can overfit. How can we tell if they are?
+Break our test samples into 2 portions: Training & Test. Ususally a 70/30 split.
+So generally:
+- Learn on the training set (minimise J on the training set)
+- Compute test set error using those parameters: J subscript test (theta).
+  - Test set error equ'n: 1/2m * sum(h(x(test))-y(test))^2.
+- Logistic regression uses the "normal" logistic cost equation, but on the training set.
+- Alternatively, can use a metric "misclassification error" - do you get it wrong or not?
+
+** Model selection & training/validation/test sets
+Suppose we'd like to choose a set of features, or choose lambda. How to do this?
+These are model selection problems.
+Basically: the training set error J(theta) is actually quite a bad metric of how well the hypothesis theta will generalise to future data. The cost J(theta) is likely to be much lower than the cost when applied to new data.
+
+So let's say we're considering whether to use polynomial features, and if so, which order polynomial to use. Should we use
+x
+x + x^2
+x + x^2 + x^3
+...
+x + ... + x^10
+?
+So let's say there's a new property, d, of our hypothesis; the degree of polynomial. 
+Minimising J(theta) for each of these degrees will result in a different theta.
+So we could take each of these parameters, and compute the cost when applied to our test set rather than our training set. OK? So we're going to look at e.g. J(test)(theta2) would be the cost of a 2nd-order polynomial hypothesis applied to the test set. Following from that, we could just see which theta (and therefore which degree of polynomial) has the lowest cost on the test set.
+However, this model has a similar flaw. Suppose we end up with theta5 (the parameters for a 5th-order polynomial hypothesis). This would likely be an optimistic estimate of generalisation error. So we can say that we've fit the extra polynomial - d - to the test set. So in this case we've picked a d (5) which is successful for our test set.
+So, how do we evaluate a hypothesis?
+Split the whole test set into 3 pieces.
+-Training set
+-Cross-validation set (CV)
+-Test set
+Usually 60/20/20.
+So we can now get 3 error measures. Training error, cross-validation error, and test error.
+How do we use this to make a descision?
+-Take a hypothesis and minimise J(theta) for e.g. the linear fit (theta0 + theta1*x1)
+-Test that set of parameters agaisnt the cross-validation set. Do this for all your hypotheses - we can say "do for each d", meaning "try it for 2nd-degree, 3rd-degree" etc. Find which has the lowest J(cv)(Theta). So the parameter "d" has been chosen using the cross-validation set.
+-Then we can compare /that/ hypothesis against the test set in order to come up with an estimate of the generalisation error for unknown data.
+So again:
+-Learn the best set of parameters for a bunch of hypotheses
+-Find the cost of each of those parameters against the CV set
+-Choose the lowest of those costs and try it against the Test set to see how it might do for new examples
+Now you've chosen a set of parameters - you've selected the best model. So you've got a more honest estimate of generalisation error.
+
+** Diagnosing bias vs. variance
+bias = underfitting
+variance = overfitting
+which one is causing a bad fit?
+
+We're going to plot the degree of polynomial (on x) vs. error (on y).
+Generally - the training error tends to decrease as the degree of polynomial increases. (A better fit with higher-order polynomials)
+The cross-validation error tends to be somewhat bowl-shaped; with high error rates at low- and high-orders, with the lowest error somewhere in the middle.
+We can say that the left high point corresponds to a bias (underfitting) problem.
+The right highpoint corresponds to a variance (overfitting) problem.
+So putting this together:
+- If your model is suffering from a bias problem, BOTH the cross-validation error AND the training error will be high.
+- If your model has too much variance, the cross-validation error will also be high, but the training error will be low.
+
+** Regularisation & Bias/Variance
+How does reglarisation affect these two issues?
+High lambda will result in underfit; low lambda will result in overfit.
+So the trick is, when dealing with a regularised hypothesis, we're not going to include regularisation term.
+then you can try using different values for lambda, and just like we did when choosing an initial hypothesis in the first place, we can run J(theta), J(CV), and J(Test) for varying values of Lambda.
+Generally:
+- J(train) will increase as lambda increases.
+- J(cv) will tend to "bowl", with high error at low & high values of lambda.
+
+** Learning Curves
+Plot J(train) or J(cv) - that's the error of the training set - against the number of training examples m.
+What we're going to do is limit ourselves to m. So try with 1 training example. Then try with 2. Then 3. Then 10... etc.
+So you should be able to get 0 error with 1 sample. And probably 0 error with <3 samples.
+As the training set m gets larger, it's harder to find a quadratic function to fit the training set. So in other words, as m increases, error in the training set increases.
+However, as m increases, the error against your cross-validation set decreases. Right? So the more samples you've trained the model on, the better it's going to fit new data (to a point).
+Putting it together, as m increases, J(train) will start low & increase, and J(cv) will start high &  decrease.
+*** High bias (Underfitting)
+So with the case of high bias e.g. trying to fit a straight line to curved data.
+A straight line is going to be just as ill-fitting to 5 points on a curve as it is 25 points on a curve. So your training error will go /up/ as you get more samples, and will be quite high. Your cv error will go down as you get more samples but /level off very quickly/ and will remain high. The values will end up quite similar, and quite bad.
+This implies that in a high bias (underfitting) model, simply getting more training data won't help.
+*** High variance (overfitting)
+With overfitting, the J(train) will be very low with low m. And will remain low as m increases (because you're using a really detailed model). However the J(cv) will start off high and flatten out, but will remain high, because the model is overfitting. So there will be a big gap between J(test) and J(cv).
+This implies that getting more training data might actually help.
+
+** What to try next - revisited.
+So, remember our predicament: model to predict housing prices, isn't working well. How to fix?
+Our options were:
+- Get more training examples - this is only going to help if we have high variance
+- Try smaller sets of features - only helpful if we have high variance
+- Try getting additional features - solution for high bias issues
+- Try adding polynomial features - solution for high bias.
+- Try decreasing lambda - fix high bias
+- Try increasing lambda - fix high variance
+
+** Neural Networks and overfitting
+"Small" neural network:
+ - few parameters (1 hidden layer, few units)
+ - more prone to underfitting
+ - computationally cheaper
+"Large" neural network:
+- more parameters (>1 hidden layer, and/or several units)
+- more prone to overfitting
+- computationally more expensive
+- use regularisation to address overfitting
+
+Generally, using a "large" NN with regularisation is a good solution, better than a "small" NN.
+Note that you can apply the same principle - training, cross-validation, and test sets - to determining what architecture of NN to use. So you can train a 3-layer NN, a 2-Llayer NN and a 4-layer NN and find which has the lowest J(cv) and therefore J(test).
+* Lecture 11: Machine Learning System Design
+** Prioritising what to work on: spam classification example
+So assume you want to build a spam classification system. x = features
+of email. How do you decide what x is going to be? I.e. how do you
+choose features?
+- Pick 100 words indicative of spam/not spam?
+  - Take e.g. andrew, buy, deal, discount
+  - Assume a text of "Deal of the week! Buy now!"
+  - Feature vector becomes [0,1,1,0]
+- In practice, you wouldn't manually choose 100 words, you would look
+  through our training set and choose the 10,000-50,000 most
+  commonly-occurring words.
+How do you spend your time to make the classifier have low error?
+- Collect lots of data?
+  - "Honeypot" project - actively try to collect spam
+- Develop sophisticated features based on e.g. email routing
+  information from header, rather than simple word content?
+- Develop more sophisticated features for the message contents;
+  e.g. are "discount" and "discounts" the same word?
+- Develop algorithms to detect misspellings (v14gr4)?
+No clear answer. It's possible to randomly fixate on one of those
+options. Or alternatively just "decide" one day that they will use
+option B) for example without even considering alternatives.
+** Error analysis
+*** Recommended approach!
+1. Start with a simple algorithm you can implement quickly.
+2. Implement it and test it on your cross-validation data.
+3. Plot learning curves to decide if more data, more features etc. are
+   likely to help.
+4. Error analysis: Manually examine the examples in the
+   cross-validation dataset that your algorithm made errors on. See if
+   you can spot any systematic trend in what type of examples it's
+   making errors on.
+Specific example:
+Say you're building a spam classifier and you have a crossvalidation
+   dataset of 500 examples. The algo misclassifies 100 of them.
+Manually examine the 100 errors and categorise them based on e.g. what
+   type of email it is, and what features might have made them
+   classify correctly.
+Eg.
+Pharma = 12
+Replica = 4
+Phishing = 53
+Other = 31
+
+This will at least tell you that you should pay attention to phishing
+emails before replica emails. Similarly your hypotheses about what
+features might have helped, you can check to see how many poorly
+classified emails have eg. leetspeak vs. dodgy punctuation to see
+which feature would have most impact.
+
+*** The importance of numerical evaluation
+Important, or really handy, to have a way of getting a single, real
+number which tells you how your system's doing. "This set of features
+resulted in a score of 8 vs. the old one's 7".
+There are situations where manual error analysis doesn't clearly give
+you a good idea about whether you should try something. E.g. stemming
+words; it's hard to manually assess whether stemming helps or harms
+your implementation. So it's handy to be able to measure performance
+in some objective way (eg. cross-validation error, or some more to
+come).
+*NOTE* you should do any error analysis on the cross-validation set,
+not the training set!
+** Error metrics for skewed classes
+"Skewed classes" are when the number of positive examples is much
+smaller than the number of negative examples (or vice versa).
+Consider the cancer diagnosis scenario. We can train a function which
+ends up with 1% error on the test set, meaning our diagnosis algorithm
+is 99% correct. However when we look at the data, only 0.5% of people
+actually have cancer - so our error is still greater than the number
+of actual true cases! In fact we could have an "algorithm" that just
+asserts "y=0" for all cases, and it would only have an 0.5% error
+rate.
+So the point is that maybe "error" isn't the best evaluation metric.
+*** Precision/Recall
+Here's a table demonstrating what's true positives, false negatives
+etc.
+|   | 1              | 0              |
+| 1 | True positive  | False positive |
+| 0 | False negative | True negative  |
+
+Precision means: "Of all patients we predicted have cancer, what
+fraction actually have cancer?"
+
+precision = true positives / (true positives + false positives).
+
+Recall means: "Of all patients who actually have cancer, what fraction
+did we correctly detect as having cancer?"
+recall = true positives / (true positives + false negatives)
+
+Note that this will prevent a cheating algorithm eg. y = 0 from
+getting a good score (because there will never be any true positives).
+
+*NOTE*: Precision/recall is used with y=1 in the rare
+class. Eg. positive cancer.
+** Trading off precision and recall
+So normally if we were using a logistic regression classifier we'd say
+basically y=1 if h(x) >= 0.5, and y=0 if h(x) < 0.5.
+- What if we only want to predict y=1 if we're very confident?
+We  could just adjust the cutoff. So y = 1 if h(x) >= 0.7. 
+This results in a classifier with higher precision. But, lower recall.
+- What if we want to avoid missing any cases of cancer? We could lower
+  the threshold and say "tell them they have cancer if h(x) >
+  0.3". This is a higher recall classifier (correctly flagging a
+  higher fraction of actual cancer cases) but lower precision (more
+  false positives).
+So generally: choosing a threshold is a tradeoff between precision and
+  recall.
+Can we pick a threshold automatically?
+How do we compare precision/recall numbers? Because now we're
+  comparing 2 numbers, not just 1 anymore. We just want to know "is
+  algorithm 1 better than algo 2 or not?!"
+*** F-score
+The F-score gives you a good measure of how well an algo is doing
+considering both precision and recall. Both precision and recall must
+be high to get a high F-score; in fact if P=1 and R=1 then F=1.
+The formula:
+2 * (P*R)/(P+R)
+Take the algo with the highest F-score.
+
+** Data for Machine Learning
+How much data do you train on?!
+There are a specific set of conditions when it is a Good Idea (tm) to
+get a bunch of training data to improve your model.
+"It's not who has the best algorithm that wins. It's who has the most
+data."
+When is that true?
+Assume that the feature vector x has sufficient information to predict
+y accurately. (compare "For breakfast I ate ___ eggs" vs. predicting
+house price on square metreage alone). Given the input, can a human
+expert confidently predict y? Ie. is it obvious to someone who knows
+what they're talking about? Because if not it might be a bit much to
+ask for an algorithm to learn it. So in this case getting more
+training examples isn't going to help you.
+If that assumption holds true, then use a learning algorithm with lots
+of parameters (eg. (logistic regression, linear regression with many
+features, neural network with many hidden units). THEN, use a very
+large training set. This will result in neither too much bias
+(complicated algorithm) nor too much variance (many many features =
+unlikely to overfit).
+So to get a high-performance learning algorithm ideally you would have
+data which a human expert can confidently & accurately predict, and
+have lots and lots of that data.
+* Lecture 12: Support Vector Machines
+SVMs sometimes give a cleaner and more powerful way of applying
+nonlinear functions than NNs. The final supervised learning algorithm.
+** Optimisation Objective
+So it looks a bit like logistic regression. Recall that with logistic
+regression, 
+htheta(x) = 1/(1+e^-thetaTx)
+or
+h(theta)(x) = g(z)
+z = theta transpose x
+An implication/restating of this is that if y=1, we want h(x) ~= 1,
+which means we want thetaTx >> 0 (which when sigmoided will become
+~=1). And vice versa - if y=0 we want h(x) ~= 0 and thetaTx << 0.
+We're going to use two cost functions; one for y=1 and one for
+y=0. These are called cost(sub1)(z) and cost(sub0)z.
+SUB ZERO
+*** The equation
+The cost function which we have to minimise for SVMs is:
+C * sum(y*cost1(thetaTx)+(1-y)*cost0(thetaTx))+1/2*sum(theta)^2.
+where C is a regularisation param like lambda was.
+*** The hypothesis
+The SVM hypothesis doesn't output a probability like logistic
+regression/NNs. It outputs 1 or 0 directly. Specifically it outputs 1
+if thetaTx >= 0 and 0 otherwise.
+** Large Margin Intuition
+SVMs are sometimes called "large margin classifiers".
+The margin is the "distance" between the descision boundary line and
+the nearest class. A gutter or buffer around the line. SVMs naturally
+choose a descision boundary with a large margin; hence "large margin
+classifier". This is good, by the way; makes them robust. If you use a
+sensible (not too large) value for C, then they aren't affected too
+badly by outliers and can handle non-linearly-seperable data pretty
+well too.
+** The mathematics behind large margin classification
+This video is optional... I think I'll watch it but not take many
+notes.
+*** Vector inner products
+u = [u1;u2]
+v = [v1;v2]
+u'*v = inner product of u & v
+We can plot u on a 2-axis plot, with the left-right axis being u1 and
+the up-down axis being u2. Right? So you get a line from origin to (u1,u2).
+\ ||u|| means "norm" of vector u which is the length of vector u. The
+norm of vector u is equal to sqrt(u1^2 + u2^2). So that's a real
+number. This gives you the length of the line from origin to u1,u2.
+So far so good. Same with v obviously. 
+What's the inner product, then?
+So imagine you've plotted u and v. You have two lines on your
+graph. Say v is steeper and shorter than u. Now take a 90 degree
+tangent from the end of v and draw that line until it meets u. This
+will effectively create a right-angle triangle between u & v. This is
+called *projecting* v onto u.
+Now think of p as being the part of u between origin and that tangent
+line. p = length of projection of v onto u.
+What's the point?
+Well u transpose v = p * ||u||
+which also = u1*v1 + u2*v2
+Which is the *inner product*.
+(note that it's the same for u'*v and v'*u)
+*** SVM Decision Boundary
+It turns out that basically the SVM is trying to minimise the squared
+length of the parameter vector (I think).
+The reason it creates those fat margins is that the projections of the
+feature vectors onto theta should be as long as possible. These
+projections are effectively the margins. These long
+margins/projections mean that the length of the parameter vector can
+be small. Which is what it wants. That's how it "naturally" chooses
+fat margins. 
+Clever!
+** Kernels
+Adapting SVMs to support complex non-linear classifiers.
+Remember: "non-linear classifiers" means e.g. drawing a circular
+decision boundary.
+New notation (yay!) - 
+theta0 + theta1x1 + theta2x2 + theta3x1x2 + theta4x1^2 + theta5x2^2
+now let's just say
+theta0 + theta1f1 + theta2f2...theta5f5...
+where in the above example f1=x1 and f5 = x2^2.
+Right? So "f(n)" is just "feature".
+Now we can ask is there a better choice of features f?
+*** Kernels
+See a scatterplot with three "landmarks". These are points chosen
+manually in the feature space.
+Now we can say that we want three features {f1,f2,f3}. We define each
+feature as their "similarity" of the example to their corresponding landmark. So
+f1 = similarity(x,landmark1)
+f2 = similarity(x,landmark2)
+f3 = similarity(x,landmark3)
+where this "similarity" function is defined as
+exp(-(||x-l(i)||^2/(2*sigma^2)))
+This "similarity function" is called a kernel. Specifically that one
+is the Gaussian kernel.
+*** Kernels & Similarity
+The implication of the gaussian kernel equation is that if x ~= l(i),
+then the numerator will be ~= 0, and therefore the kernel will
+evaluate to 1. (trust me on this)
+Conversely if x is far from a given landmark, it'll evaluate to 0.
+So by assigning 3 landmarks we can create 3 new features for each
+training example x.
+So the new feature f1 measures how close each example is to the
+landmark l1, varying between 0 (far away) and 1 (exactly coincident).
+*** The sigma parameter
+So far we haven't mentioned that sneaky denominator sigma^2 in the
+kernel. This basically controls the width of the kernel or how
+fast/slowly it drops from 1 to 0. A small sigma^2 value will mean a
+narrow kernel so you have to be very close to the landmark to score
+close to 0. A large one will produce a fat kernel so you can be quite
+far away from the landmark and still get sort of close to 1.
+
+*** Choosing the landmarks 
+So these landmarks act as kind of control points for creating a
+descision boundary. You don't need crazy polynomial features. But how
+do we pick the landmarks?
+
+You just put a landmark where every feature is. Zing! The features are
+the landmarks for each other! Lulz!
+So you have m landmarks.
+
+*** SVM with Kernels: replacing parameter vector x with feature vector f
+So what you do here right. You take each example x(i). You measure its
+"similarity" (aka distance aka kernel) from every other feature. These
+values are stored in a new feature vector f(i). So f(i)(1) is the
+distance from x(i) to l(1) (which is also x(1)). 
+Before, each example is an n-dimensional vector. Now, we have an
+m-dimensional vector f for each example.
+And we use these examples in the SVM rather than the features
+themselves. META.
+So now the hypothesis is:
+- Given x, compute features f
+- Predict y=1 if theta'*f >= 0.
+Similarly with the cost function, it's the same in theory except
+replacing x with f.
+Also a cheeky note: the "regularization parameter" at the end of the
+cost function (sum(theta.^2)) is equal to thetaTtheta (ignoring
+theta0). Technically most implementations actually don't use
+thetaTtheta, they use thetaTm-theta, or something. But, basically,
+whatever. All the libraries we use to solve that cost function do that
+already.
+*** SVM Parameters
+C. C is the regularisation term. Large C = lower bias, high
+variance. Small C = higher bias, low variance. (this is the opposite
+to lambda term in logistic regression)
+Sigma^2. This is the kernel width. Large value means the features vary
+more smoothly. Higher bias, lower variance. Small value means the
+features don't vary as smoothly. Lower bias, higher variance. 
+** Using an SVM
+Basically, we're going to use an SVM software package such as
+liblinear, libsvm to solve for parameters theta. However we will need
+to choose our parameter C, and also choose a kernel and its
+parameters.
+*** Choosing a kernel
+No kernel is called a "linear kernel". When would we use it? When n is
+large, and m is small. This obviously has no parameters.
+Gaussian kernel. You will have to choose its sigma^2 parameter,
+considering its bias/variance tradeoffs. When to use a gaussian
+kernel? If n is small and/or m is large.
+A note about implementing gaussian kernels. Some software (eg. Octave)
+will ask you to write your own kernel function. In this case you end
+up with something like
+function f = kernel(x1,x2)
+f = exp(-(||x1-x2||^2/(2*sigma^2)))
+return f
+Note that you should implement feature scaling before you use the
+gaussian kernel.
+Note also that you could theoretically give it any function at all,
+but you shouldn't. Not all functions are valid kernels. (Fun fact:
+they must satisfy Mercer's Theorem)
+There are other kernels:
+- Polynomial kernel
+- String kernel
+- Chi-square kernel
+- histogram intersection kernel...
+But basically you'll be using either the linear kernel or gaussian
+kernel.
+*** Multi-class classification
+Many SVM packages have built-in multi-class classification
+functionality.
+Otherwise you basically use the same theory as logistic regression:
+you train one classifier for each class, run them all, and pick the
+class which gave the highest value.
+*** Logistic Regression vs. SVM
+if n is large relative to m, use logistic regression or SVM without a
+kernel.
+If n is small (<1000), and m is "intermediate" (10-50,000), use SVM
+with a gaussian kernel.
+If n is small but m is large (>50,000), create/add more features, then
+use logistic regression or SVM without a kernel.
+For the record - Neural network is likely to work well in all of these
+scenarios - but might be slow to train.
+ 
+* Lecture 13: Clustering
+** Unsupervised learning
+Training set looks like {x1,x2...}. I.e. no y values; no labels.
+Unsupervised learning asks "find some structure in this data".
+(There other unsupervised learning algos than clustering btw).
+Some applications include market segmentation of customer data, social
+network analysis etc.
+** K-means algorithm.
+Group the data into coherent subsets.
+K-means is the most popular & widely used clustering algorithm.
+*** How does it work?
+Randomly initialize 2 points called "cluster centroids"
+Then iteratively do two things:
+ 1. Cluster assignment
+  - Assign each data point to the cluster centroid which is closest
+ 2. Move centroid
+  - Look at all the "blue dots", compute their mean value, and move
+    the centroid to that location
+*** Formal definition
+Takes two parameters:
+- K (number of clusters)
+- Training set (m long, unlabelled)
+Note that x(i) is an n-dimensional vector; not an n+1 dimensional
+vector; we are dropping the x(0)=1 convention.
+
+1. Randomly initialize K cluster centroids mu1, mu2...muK. Note mu(k)
+   is an n-dimensional vector as well; sort of a "ghost point".
+2. Repeat:
+   1. for i=1 to m
+      1. c(i) := index (from 1 to K) of cluster centroid closest to
+         x(i)
+      2. specifically: find which k minimises ||x(i)-mu(k)||^2
+
+   2. for k = 1 to K
+      1. mu(k) := average of points assigned to cluster k
+
+c seems to be a vector holding a number (representing the cluster) for
+each example.
+
+Also note that if you ever end up with a cluster centroid with 0
+points assigned to it, you generally just kill that centroid (though
+you could re-randomly-initialize it).
+
+*** Example: T-shirts
+So say a t-shirt manufacturer has a bunch of data of customer height &
+weight. Generally it'll be positively correlated. The question is can
+we break it into 3 groups? So we're not looking for clearly-separated
+groups; it's more like "Divide these data up into batches which make
+some kind of sense".
+
+** Optimization objective
+K-means cost function.
+- Need to know this for debugging
+- Need to know this for improving the clustering
+
+*** Notation
+c(i) = index of cluster (1,2,...,K) to which example x(i) is currently
+assigned
+
+mu(k) = cluster centroid k (don't forget mu's are vectors)
+
+mu(c(i)) = cluster centroid of cluster to which example x(i) has been
+assigned
+
+*** The Function
+J(c(1-m),mu(1-K)) = 1/m * sum(||x(i) - mu(c(i))||^2)
+
+So it tries to find parameters c and mu which minimize the cost
+function. AKA "distortion".
+
+So note that "cluster assignment" step from the algorithm explanation
+above minimises J for c, then the "move cluster centroids" step
+minimises it for mu.
+
+** Random initialization & avoiding local optima
+How do you randomly intialize the cluster centroids? There is a good
+way.
+
+You should have K < m.
+
+Randomly pick K of your training examples.
+
+Set mu's to be equal to those examples.
+
+(makes sense)
+
+K-means can converge on different solutions depending on how the
+clusters were initialized. Sometimes you can get shitty clusters
+found, e.g. where there's only one example in a cluster. How to avoid
+this?
+
+Run it a few times with different initializations. Where "a few" is
+between 50-1000. Pick the clustering parameters which resulted in
+lowest cost (J). This is generally only true when searching for 2 <= K
+<= 10.
+
+** Choosing the number of clusters (K)
+There isn't a great way of doing this automatically.
+Still most often done manually through visualisation or whatever.
+
+This is the nature of unsupervised learning.
+
+*** The "elbow method"
+If you plot the cost against increasing K, often distortion will be
+very high for K=1, less high for K=2, lowish for K=3, less low for K=4
+etc, levelling off around 3. This point of levelling-off is the
+"elbow". So does saying "well we should use 3 clusters" make sense?
+Yes - but only if the plot actually looks like that. More often that
+not the plot will be a lot smoother - there will be no clear
+levelling-off point - which means you can't really make a call. So the
+elbow method doesn't always work (but if it does, hey, great).
+
+*** The "common sense" method
+Just choose K which makes sense. If you're e.g. a T-shirt
+manufacturer, you can choose K=3 to be S,M,L or 5 for XS,S,M,L,XL.
+K = 3 might be better for manufacturing efficiencies but K = 5 might
+be better for making t-shirts that actually fit. (I'm guessing this
+will usually be the most sensible method).
+
+* Lecture 14: Dimensionality Reduction
+Another type of unsupervised learning. It's good for data compression.
+** Data compression
+Not just for file size! Think of feature reduction. So if you end up
+with a massive dataset of features chances are there are some
+redundant or even identical features in there, e.g. length in MM vs
+length in CM, or hectares vs acres or whatever. This becomes a bit
+trickier to identify when values are rounded to the nearest inch & the
+nearest centimetre; they will no longer fit a perfect line. 
+A less contrived example would be correlated but not redundant
+features. For example measuring helicopter pilots; you might measure
+their skill, and their enjoyment of flying; but these two features
+might end up being highly correlated and so can be reduced to a single
+feature (e.g. "aptitude").
+
+More formally, reducing features from 2D to 1D. So x(1) would be a
+2-dimensional feature vector; we can project this into a single real
+number. Then you only have one number to worry about; you're no longer
+doing vector arithmetic. This can remove processing and/or memory
+requirements, but more to the point, it lets your training algorithms
+run more quickly.
+Note, though, that you do lose data; it's an approximation.
+
+This isn't limited to 2D -> 1D; it's usually used to reduce 1,000D
+data to 100D.
+
+** Data visualisation
+Basically if you have a 50-D dataset you can't plot it; so you could
+reduce it to D2 and look at an x,y plot. (Or technically it'll be a
+z1,z2 plot)
+Note that after that reduction z1,z2 don't get assigned a real
+meaning; we as people have to infer that afterwards.
+
+** Principal Component Analysis
+Is the best way of performing data compression/feature reduction.
+How do you do it?
+You need to find a surface which minimizes the square projection error
+for the features.
+It is customary to first perform feature scaling and normalisation
+before doing PCA. (0 mean, comparable range of values)
+
+Reduce from 2D to 1D: Find a direction - u(1) - an n-D vector (where n=2 in
+this case) - onto which to project the data so as to minimize the
+projection error.
+
+Reduce from n-D to k-D: find k vectors u(1),...,u(k) onto which to
+project the data so as to minimize the projection error. So imagine
+that 3D point cloud again; the vectors which outlined the plane
+everything was projected to were u(1) & u(2).
+
+Isn't this just linear regression? *NO.*
+Linear regression is fitting a straight line; but we're minimising the
+"vertical lines", e.g. the error between x and predicted y. 
+PCA is minimising the "angled lines" - finding the shortest distance
+between a point and the line. Projection is quite different to error
+minimization.
+Also, in linear regression you're trying to predict y; with PCA you're
+not trying to predict anything.
+** PCA Algorithm
+*** Data preprocessing
+Training set: x(1),x(2),...,x(m)
+Feature scaling/mean normalisation
+mu(j) = 1/m*sum(x(i(j)))  <-- that's the mean of each feature
+Replace each x(i(j)) with x(j)-mu(j).
+If different features on different scales, scale features to have a
+comparable range of values. How?
+x(i(j)) <- (x(i(j)) - mu(j)) / s(j) where s(j) is usually the standard
+deviation of feature j.
+*** The algorithm
+To do PCA we need two things: the vector (or vectors) which represent
+the lower-dimension plane to project our data onto, and the z values
+which are the new values from projecting x onto our new plane u.
+Mathematically it's complicated but ultimately it's not hard.
+
+To reduce data from n-dimensions to k-dimensions:
+Compute "covariance matrix" (often represented by SIGMA)
+SIGMA = 1/m * sum(x(i)*(x(i) transpose))
+SIGMA will be an n*n matrix. Because x(i) is an n*1 and x(i)T is
+1*n. So that results in n*n.
+Then compute eigenvectors of matrix SIGMA
+In octave:
+[U,S,V] = svd(Sigma);
+(don't worry too much about what's actually happening here!)
+U will be an n*n matrix, and the columns of the u matrix will be the
+vectors u we want. Huzzah! Then if we want to reduce the dimensions to
+K dimensions we just take the first K columns.
+So our first K columns is going to be an n*K matrix and we're going to
+call it U(reduce).
+Then to get z, we take U(reduce)Transpose * x.
+
+*** Summary & implementation
+ 1. Mean normalization (ensure all features have 0 mean)
+ 2. Feature scaling if applicable
+ 3. Calculate Sigma. In octave, if X is matrix of all training data:
+    Sigma = (1/m) * X' * X;
+ 4. [U,S,V] = svd(Sigma);
+ 5. Ureduce = U(:,1:k); % take the first K columns of U
+ 6. z = Ureduce' * x; % note the lowercase x - have to look up matrix
+
+** Choosing the number of principal components
+K = number of principal components. How to pick K?
+*** Useful concepts in choosing K
+Average square projection error (average difference between x and the
+projected x)
+Total variation in the data (on average, how far are my examples from
+0)
+Typically we choose k to be the smallest value, so that
+average square projection error / total variation in the data <= 0.01.
+Which means "99% of the variance is retained".
+Surprisingly you can often retain 95-99% of variance and still reduce
+the dimensionality considerably.
+*** Algorithm for choosing K
+Try PCA with k = 1
+Compute Ureduce, z, xapprox...
+Test variance...
+Increase K, try again.
+OR
+remember [U,S,V]?
+S is a diagonal matrix.
+And we can do the "average square prediction error / total variation"
+calculation using S, as 
+1-(sum(S1,1 -> Sk,k) / (sum(S1,1 -> Sn,n)))
+Which means you don't have to keep running the procedures. You can
+just test the S matrix for the optimal K value.
+
+** Reconstruction from Compressed Representation
+Having compressed something; how do we uncompress it?
+Xapprox = Ureduce * z.
+Ureduce is an n*k dimensional vector; z is an k*1 vector; so xapprox
+will be n*1 dimensional, which is good.
+
+** Advice for applying PCA
+How to use PCA to improve learning algorithms?
+*** Supervised learning speedup
+Assume that you're dealing with a training set
+(x1,y1),(x2,y2),...,(xm,ym)
+with each feature x(i) as a 10,000-dimensional vector. E.g. a
+100x100px image.
+This can be superslow to learn on.
+So extract the x's into an unlabeled dataset:
+x1,x2,...,xm
+run it through PCA so you end up with
+z1,z2,...,zm
+where each z is a K-dimensional vector with K << n. e.g. a
+1000-dimensional vector.
+Put them back with their labels so we now effectively have a new
+training set
+(z1,y1),(z2,y2),...,(zm,ym)
+Then we calculate our hypothesis h(x) instead as h(z). When we get a
+new example we want to predict, we must first apply the PCA mapping to
+get a new z, then predict based on that.
+Note then that we should only calculate that mapping on our training
+set, and consider that PCA mapping a model parameter - that is, apply
+it as part of the cross-validation and test set processes.
+*** Bad use of PCA - to prevent overfitting
+Remember that using too many features can lead to overfitting? You
+can't try to use PCA to prevent overfitting - it doesn't really make
+sense. You should use regularisation instead.
+*** Bad use of PCA - without trying raw data first
+Don't leap straight to PCA; just try running your system on the raw
+data first. Only if it doesn't do what you want (ie. if it's too slow,
+or you need to save memory or storage) should you implement PCA
+(otherwise it's kinda pointless & a waste of time).
+
