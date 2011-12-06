@@ -1809,3 +1809,6 @@ you get a normal 3D peak centred on 0,0. But if you change the parameters to
 Sigma = [1,0.5;0.5,1]
 You get a thin diagonal spike.
 
+** Applying multivariate gaussian
+Basically: The original "normal" model is much cheaper and scales better to high values of n (many features) and works better on low values of m (few examples). To counteract misclassification you can manually create features which emphasise correlated variables (eg. the CPU/network load feature). The multivariate system handles that for you, but is much more expensive to compute, and it's needed that m >> n (eg. m > 10n). Which isn't always desirable or possible. The normal one is the most often used variant.
+
