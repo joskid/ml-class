@@ -1620,3 +1620,192 @@ data first. Only if it doesn't do what you want (ie. if it's too slow,
 or you need to save memory or storage) should you implement PCA
 (otherwise it's kinda pointless & a waste of time).
 
+* 15: Anomaly Detection
+Commonly used application of ML. Sort of an unsupervised problem, but aspects of supervised.
+** Problem motivation
+ e.g. Aircraft engines. You're looking at the features of aircraft engines. They have features x1 = heat generated, x2 = vibration intensity, etc etc. 
+So what if one of your engines' features "looks different" to a "normal" engine?
+That's anomaly detection.
+
+In anomaly detection, we build a model p(x). If p(xtest) < epsilon: flag as anomaly. Otherwise, ok.
+
+That is we say if a new engine has a very low probability, it might be shifty.
+
+So we make kind of "probability contours". The middle of the cluster will have a very high probability, etc etc, and the outer rim of a dataset will have a very low probability.
+
+Fraud detection is most common application of anomaly detection.
+
+Manufacturing is another one. Monitoring computers in a datacenter, you can pick out which computers might be about to fail or has been compromised.
+
+** Gaussian Distribution
+AKA Normal distribution.
+
+Can be applied to anomaly detection algos.
+
+*** Notation
+Say x sis a real number. If x is a distributed Gaussian with mean mu & variance sigma^2:
+we write
+x ~ N(mu,sigma^1) (that should be a script N, meaning "normal". the tilde means "distributed as").
+
+It's a bell curve, ok? Geez.
+
+Formally:
+p(x;mu,sigma^2) = (1/(sqrt(2*pi))*sigma)*exp(-((x-mu)^2/2*sigma^2))
+Don't really need to know it. There's functions /everywhere/.
+
+*** Visualising
+Looking at plots, we can see that if mu=0,sigma=1 we get a "normal-shaped" bell curve. However if we use sigma=0.5 then the curve is much higher; this is because it's narrower and has to contain the same area. Similarly sigma=2 is short and fat. (This area under the curve always integrates to 1 - apparently that's a property of probability distributions).
+
+*** Parameter estimation
+So this is saying "I assume that this data was distributed with a normal distribution, but I don't know the values of mu or sigma^2." How do we find it?
+
+The formula for estimating parameters:
+
+mu = mean(x)
+sigma^2 = 1/m * sum(x-mu)^2
+
+** Algorithm
+Applying the gaussian distribution to perform anomaly detection.
+
+Assume we have a training set x where each example is an n-d vector.
+
+We want to work out p(x) based on this training set.
+
+p(x1 ) * p(x2 ) * p(x3) ... p(xn  )
+
+We're going to assume that feature x1 is in a gaussian distribution with properties mu1 and sigma*2(1). Feature x2 is also in a gaussian distribution with properties mu2 and sigma**2(2). Etc etc etc.
+
+So all the features have their own standard deviation and mean.(This is called an independence assumption - but it doesn't need to be independent)
+
+So now my algorithm is
+
+p(x) = p(x1;mu1,sigma1) * p(x2;mu2,sigma2) * p(x3;mu3,sigma3) * ... * p(xn;mu(n),sigma(n))
+
+Which is
+p(x) = PI(x;mu;sigma)
+
+This is entirely called "Density Estimation".
+
+*** The algorithm
+ 1. Choose features x(i) that you think might be indicative of anomalous examples.
+ 2. Fit parameters mu(1)...mu(n),sigma^2(1)...sigma^2(n)
+    1. mu(j) = 1/m * sum(x(i)(j)). 
+    2. sigma^2(j) = 1/m * sum(x(i)(j)-mu(j))^2
+ 3. Given a new example x, compute p(x)
+    1. p(x) = prod(p(x(j);mu(j),sigma^2(j))) = prod((1/(sqrt(2*pi))*sigma(j))*exp(-((x(j)-mu(j))^2/2*sigma^2(j))))
+ 4. Anomaly if p(x) < epsilon.
+
+So for example that "calculate mu(j)" means "calculate the average of feature j over my whole training set" (ie. a column-wise mean, yeah?).
+
+*** Example
+Some more stuff with a graph that's totally hard to transcribe. 
+If you calculate the gaussian of x1 & x2 with the parameters we've computed, and plot them, you basically get a 3D plot with a P value for any given location of x.
+
+** Developing & evaluating an anomaly detection system
+Again: we need a real-number evaluation metric. "This model is 4 therefore better than that model which is 3".
+
+Let's assume we have some labeled data, of anomalous & non-anomalous examples (1=anomalous)
+
+We use normal examples for our training set.
+
+CV set and Test set include known-anomalous data.
+
+*** Example: Aircraft engines
+Say we have 10,000 good (normal) engines
+20 flawed (anomalous) engines.
+
+(commonly these systems will have very few, 2-50, y=1 examples and many many more y=0 examples).
+
+We split this up as:
+Training set: 6000 good engines
+CV: 2000 good engines, 10 anomalous engines
+Test: 2000 good engines, 10 anomalous.
+
+Use training set to fit p(x) (ie. find mu(1),sigma(1)...mu(n),sigma(n))
+
+Then we predict y on the CV set.
+
+Possible evaluation metrics:
+ - True positive, false positive, false negative, true negative
+ - precision/recall
+ - F1 metric
+(note accuracy isn't in this list because if you just predicted y=0 100% of the time you'd get a really good score)
+
+
+Can also use CV set to find epsilon. Possibly by finding a value of epsilon which maximises the F1 score for example.
+
+** Anomaly Detection vs. Supervised Learning
+Well, which is it then?
+
+Use anomaly detection when:
+ - Very small number of anomalous (positive) examples, like <50.
+ - Large number of negative (y=0) examples.
+   - This is because we're dealing with the probability stuff, we only "need" one class of data, right. So we describe a "normal" feature and then just pick something it isn't.
+ - Many different types of anomalies.
+   - Hard to learn what a positive example of an anomaly is.
+   - Anomalies in future might not look like ones we've seen before.
+   - The try/except of classification?
+
+Use supervised learning when:
+ - You have a large number of both positive and negative examples.
+   - Because it might not be easy/possible to come up with a good "normal" type. 
+ - Enough positive examples to classify "anomalies" as a distinct class.
+ - "Anomalies" are able to be described, and are likely to stay similar.
+
+** Choosing what features to use
+Features have a really big impact on anomaly detection.
+
+*** Non-gaussian features
+It's important to check that your data is vaguely gaussian. (The algo will usually work OK anyway, but still). If you have to use features which aren't gaussian, you can try different transformations of the data e.g. log(x) to get it into a vaguely gaussian distributed shape.
+
+*** Different transformations
+So there's several things you can use besides log(x).
+e.g. x.^0.5, x.^0.05, etc etc etc.
+You can use octave's hist() function to pretty quickly determine which transformation makes for the gaussian-est distro.
+
+*** Error analysis for anomaly detection
+Recall: we want p(x) to be large for normal examples and small for anomalous examples.
+Remember that "error analysis" is to manually inspect examples which are misclassified and try to consider which features might be making that happen.
+
+A common issue is that p(x) is comparable (e.g. large) for both the normal AND anomalous examples. How can we reduce it for the y=1 examples?
+
+General advice: *Choose features which might take on unusually large or small values in the event of an anomaly*.
+
+*** Example: Monitoring computers in a data center
+Choose:
+ - Memory use
+ - number of disk accesses/sec
+ - CPU load
+ - network traffic
+
+Let's take a guess that CPU load and network traffic usually grow linearly, e.g. a web server. Then let's take a guess that something we want to look out for is a stuck process - i.e. a high CPU load without a high network load. Then we might make a nwew feature of CPU load / network traffic. Or CPU load ^2 / network traffic to exaggerate any differences.
+
+** Multivariate Gaussian Distribution
+A possible extension, which has some pros & cons.
+
+*** Example
+Let's think of datacenter monitoring again.
+
+It's possible to have an anomaly which is far away from the "kernel" of the data, but when considered on a feature-individual level, it won't show up.
+
+Especially when looking at a distribution which isn't circular. So thinking of the CPU load/network load thing before, the plot of those variables will be generally increasing. A high CPU load/low network load combination might stick out to the "side" of the distribution and look obvious to us, but because the CPU load isn't extremely high or the network load extremely low, it won't neccesarily be picked up.
+
+So we need to take into account the "shape" of the plot of the variables.
+
+*** Implementation
+Rather than modeling p(x1),p(x2)...,etc separately, model p(x) all in one go.
+Parameters: mu will be an n-d vector, SIGMA will be an n*x matrix (covariance matrix).
+
+To do so:
+p(X,mu,SIGMA) = (1/((2*pi)^(n/2))*det(SIGMA)^0.5)*exp(-(1/2)*(X-mu)'*SIGMA^-1*(X-mu))
+
+(phew!)
+
+We can actually start to model the "shape" of the distribution by modifying SIGMA. So if 
+mu = [0;0]
+and 
+Sigma = [1,0;0,1]
+you get a normal 3D peak centred on 0,0. But if you change the parameters to
+Sigma = [1,0.5;0.5,1]
+You get a thin diagonal spike.
+
