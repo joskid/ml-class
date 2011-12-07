@@ -1812,3 +1812,157 @@ You get a thin diagonal spike.
 ** Applying multivariate gaussian
 Basically: The original "normal" model is much cheaper and scales better to high values of n (many features) and works better on low values of m (few examples). To counteract misclassification you can manually create features which emphasise correlated variables (eg. the CPU/network load feature). The multivariate system handles that for you, but is much more expensive to compute, and it's needed that m >> n (eg. m > 10n). Which isn't always desirable or possible. The normal one is the most often used variant.
 
+* 16: Recommender systems
+An important application of ML. Very important to many companies. 
+Also, it is potentially applicable to "recommend" features for other systems to learn from... (epic meta!)
+
+** Problem formulation.
+Example: Predicting movie ratings
+User rates movies 0-5 stars.
+
+| Movie                | Alice(1) | Bob(2) | Carol(3) | Dave(4) |
+| Love at Last         |        5 | 5      | 0        | 0       |
+| Romance Forever      |        5 | ?      | ?        | 0       |
+| Cute Puppies of Love |        ? | 4      | 0        | ?       |
+| Nonstop Car Chases   |        0 | 0      | 5        | 4       |
+| Swords vs. Karate    |        0 | 0      | 5        | ?       |
+
+*** Notation
+n(u) = number of users
+n(m) = number of movies
+r(i,j) = 1 if user j has rated movie i
+y(i,j) = rating given by user j to movie i (present only if r(i,j)=1)
+
+*** The problem
+Given these r(i,j)s and the y(i,j)s, what might the missing y(i,j)s be?
+
+I.e. find which movies haven't been watched, and find out how likely they are to like them.
+
+** Content-based Recommendations
+Now let's assume we have features for each of the movies.
+| Movie                | Alice(1) | Bob(2) | Carol(3) | Dave(4) | x1 - romance | x2 - action |
+| Love at Last         |        5 |      5 |        0 |       0 |          0.9 |           0 |
+| Romance Forever      |        5 |      ? |        ? |       0 |          1.0 |        0.01 |
+| Cute Puppies of Love |        ? |      4 |        0 |       ? |         0.99 |           0 |
+| Nonstop Car Chases   |        0 |      0 |        5 |       4 |          0.1 |         1.0 |
+| Swords vs. Karate    |        0 |      0 |        5 |       ? |            0 |         0.9 |
+
+So now we can represent our movies as a feature vector.
+
+"Love at Last" = [1,0.9,0] #note intercept team
+"Swords vs. Karate" = [1,0,0.9]
+
+So we could, in theory, predict the ratings from each user as a linear regression problem, if we lean a parameter theta based on customers' ratings. Right? So Let's look at Alice's possible rating for "Cute Puppies of Love".
+x(3) = [1,0.99,0]
+theta(1) = [0,5,0]
+
+Calculate:
+theta(1)'*x(3) = 4.95
+
+So the prediction  for Alice's rating for Cute Puppies O'Love is 4.95.
+
+*** Problem formulation (again)
+How do we learn the parameter vector theta(j) - the function of how much a user j will like a movie based on how actiony/romantic it is/
+
+To learn theta(j):
+1/2m(j) * sum over all movies user j has rated ( theta(j)'*x(i) - y(i,j) ^2)
+
+can have regularisation term at the end as well if you like.
+
+So this is exactly the linear regression equation, but applied only to movies we've seen.
+
+See handout for actual equation - it's effectively the same as the linear regression equaton. Except we don't use the 1/m term actually here because it's messy, or something.
+
+Keep in mind that this whole approach assumes that we have the features of 'Romantic' vs 'Action'. Often we don't have this info! So what do we do instead?
+
+** Collaborative Filtering
+Has the property of "feature learning" - it can start to learn for itself which features to use.
+
+*** Problem motivation
+So remember in the other example we'd assumed that we had the content parameters of every movie (or book or whatever). This data can be impossible/expeensive to collect.
+
+So let's reconsider an issue where x1 and x2 are both unknown in that table above.
+
+Now let's pretend we've asked our users how much they like romantic vs. action movies. Ok? Which may, or may not, work out.
+
+But if it does, we can then infer action-ness & romance-ness from user's recommendations, and their preferences.
+
+Basically we're doing the same thing - but backwards. So we have our parameters theta, and we're learning the feature vector x. (whoa)
+
+Same regression term is used - square error estimation - with regularisation.
+
+*** Collaborative Filtering
+So we've seen that we can estimate theta given x, and can estimate x given theta.
+Which first?
+Well it turns out that we can take a random guess of theta, find a good x, use that x to find a better theta, use that theta to find a better x, use that x to find a better theta...
+"It actually works"(tm)
+This is a basic collaborative filtering issue.
+It hinges on the assumption that each user has rated multiple movies, and each movie has been rated by multiple users.
+
+
+** Collaborative Filtering Algorithm
+Given x, find J(theta)
+given theta, find J(x)
+
+BUT! Ah-HA! The trick is we can actually define a J(x,theta) - that's right, we can solve them both at once!
+It's a bitch of a formula - complicated - but more or less makes sense... look it up
+Pointing out:
+When finding the squared error for finding J(theta), we are summing over all movies that user has rated. When finding J(x), we sum over all  users who have rated the movie. 
+Which is looping over all pairs (i,j) - movies with a rating - in a different order.
+So we can basically calculate both values on each pass of i,j.
+
+Noting that - we are also going to drop the "add intercept term" step. So now x is an n-d vector (not an n+1 d) and theta won't have 00 as the 1st element.
+
+*** The algorithm
+1. Initialize x & theta to small random values
+2. Minimise J(x,theta) using gradient descent or another optimisation algorithm.
+3. Given a user with parameters theta and a movie with (learned) features x, predict a star rating of theta-T-x.
+
+** Vectorization: low rank matrix factorization
+Can we do something else with this algorithm? Like besides saying "I think this user would like this movie this much" can we say "hey you might also like this product"?
+
+Let's take our 5 movies & 4 users and group them into a matrix Y.
+
+| 5 | 5 | 0 | 0 |
+| 5 | ? | ? | 0 |
+| ? | 4 | 0 | ? |
+| 0 | 0 | 5 | 4 |
+| 0 | 0 | 5 | 0 |
+
+so y(i,j) is the rating given to movie i by user j.
+
+Now we can vectorise the crap out of it...
+
+X is going to be the matrix of movies. (Row vectors with features of movies)
+
+THETA is going to be matrix of parameters (Column features with parameters for every user)
+
+So now, Y = X*THETA
+
+Sweet huh.
+
+So this is called "low rank matrix factorization". Apparently.
+
+*** Finding related movies
+For each movie i, we learn a feature vector x(i).
+(Calculate distance between that vector and others?)
+
+How do we find other movies j related to movie i?
+Yep - minimise the distance between parameter vectors.
+
+** Implementational detail: mean normalization
+What about users who haven't rated any movies?
+It will predict 0 for all parameters and for all movie ratings. That's a bit dumb.
+What we can do instead is look at what other people have rated that movie and assume she would have rated it somewhat similarly. Here's how:
+
+1. Take the mean rating for every rated movie
+2. Subtract the mean from every movie's rating. Now all movies have an average rating of 0.
+3. Do our learning of parameters & features based on these mean-normalised values.
+4. When we do our prediction, re-add the mean for that feature to the predicted score.
+
+This has 2 benefits:
+ - Users who have rated a movie end up with the same prediction
+ - New users who haven't contributed to their parameters yet get the mean value for that movie.
+
+This is theoretically possible to apply this the other way around - to apply default ratings to every movie based on other people's preferences. However this doesn't really make sense - how can we guess what's in a movie until someone has expressed an opinion on it? Just saying "users generally are likely to like a movie that comes out" is pretty meaningless. Actually being able to recommend things to new users because at least other people like them is much more helpful.
+
