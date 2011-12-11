@@ -11,11 +11,6 @@ X = reshape(params(1:num_movies*num_features), num_movies, num_features);
 Theta = reshape(params(num_movies*num_features+1:end), ...
                 num_users, num_features);
 
-            
-% You need to return the following values correctly
-J = 0;
-X_grad = zeros(size(X));
-Theta_grad = zeros(size(Theta));
 
 % ====================== YOUR CODE HERE ======================
 % Instructions: Compute the cost function and gradient for collaborative
@@ -40,20 +35,17 @@ Theta_grad = zeros(size(Theta));
 %                     partial derivatives w.r.t. to each element of Theta
 %
 
+h = X*Theta';
+error = (h - Y).*R; % Only include relevant terms
 
+J = (1/2) * sum(((error.^2))(:)); % the (:) is to avoid sum(sum(...))
+% But for some reason that didn't work on the line below so we have PARENGASM
+lambda_exp = ((lambda/2)*sum(sum(Theta.^2))) + ((lambda/2)*sum(sum(X.^2(:))));
+% Shmoosh it together
+J = J + lambda_exp;
 
-
-
-
-
-
-
-
-
-
-
-
-
+X_grad = (error*Theta) + (lambda*X); % Regularized as bro
+Theta_grad = (error'*X) + (lambda*Theta); % Soooo regularized
 
 % =============================================================
 
