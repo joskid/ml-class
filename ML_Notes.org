@@ -1966,3 +1966,299 @@ This has 2 benefits:
 
 This is theoretically possible to apply this the other way around - to apply default ratings to every movie based on other people's preferences. However this doesn't really make sense - how can we guess what's in a movie until someone has expressed an opinion on it? Just saying "users generally are likely to like a movie that comes out" is pretty meaningless. Actually being able to recommend things to new users because at least other people like them is much more helpful.
 
+* 17: Large Scale Machine Learning
+Algorithms for dealing with big datasets.
+** Learning with large datasets
+Main reason ML is more successful now than 5 years ago is the amount
+of data available. Saying goes, "It's not who has the best algorithm
+that wins, it's who has the most data."
+Where possible, we should try to learn from large datasets.
+What's large?
+m = 100,000,000.
+Census data for US is ~300mil.
+Traffic logs for websites are easily that large.
+When we're using e.g. gradient descent we need to sum over m - which
+is expensive!
+Keep in mind that it might be just as good to take a random sample of
+1,000 examples and train a model on that first, to see if you need to
+go to the huge numbers at all. How can we check this? We can plot a
+learning curve, and if you start getting a low variance (high bias)
+plateau then it might not be worth increasing m. (Instead you might
+try adding extra features, or extra NN layers, etc etc.)
+** Stochastic Gradient Descent
+Straight-up gradient descent becomes very expensive with high m.
+This "straight-up" is called technically Batch Gradient Descent.
+Also need to load all 300,000,000 records into memory so you can
+calculate the derivatives. This is a bit lame.
+Batch gradient descent cost function:
+J(theta) = 1/(2m) * sum(h(x)-y)^2.
+Stochastic gradient descent cost function:
+J(theta,(x(i),y(i))) = 1/2 * (h(x)-y) ^2
+So the cost function is relevant to one particular training pair, not
+the whole training set at once.
+*** How SGD works
+1. Randomly shuffle dataset
+2. Repeat {
+   1. for i = 1...m {
+      1. theta(j) := theta(j)-alpha*(h(x)-y)*x(j) (for j=0...n)
+      2. }
+   2. }
+
+So what it's doing is scanning through the examples and taking
+gradient descent steps according to each example it gets to, rather
+than working out the derivative for every example at once. Then it
+tries to fit the parameters to fit the 2nd training example
+better... then the 3rd... etc etc. And so on. So this iteration ends
+up being quicker than trying to crunch all the numbers at
+once. Basically you start to make progress as soon as you start
+computing, as opposed to having to crunch the whole set before you
+take a single step.
+On the graph, stochastic gradient descent takes a bit of a drunken
+path towards the global minimum rather than the beeline of batch
+gradient descent. So each step generally gets closer to min, but might
+not at every step.
+Also of note is that it doesn't *converge* - it just ends up
+"wandering around" the global minumum.
+So how many times do we do this "repeat:" outer loop? Not
+many. ~10x. With massive datasets often 1 pass will be "close enough".
+** Mini-batch gradient descent
+Can sometimes be even quicker than stochastic GD.
+ - Batch gradient descent: use all m examples on every step
+ - Stochastic gradient descent: use 1 example on every step
+ - Mini-batch gradient descent: use b examples on every step
+   - b = mini-batch size. b ~= 10. generally 2 <= b <= 100.
+So generally the equation is again the same, but rather than
+calculating it either for all samples or one sample, you add up the
+error over b examples at a time. Fairly straightforward.
+This is beneficial over stochastic GD as you can vectorise your "sum
+over b" term in the step. Particularly if you can parrallelize your
+calculations (which you can partially apparently).
+Disadvantage would be fiddling to find a good value for b.
+** Stochastic Gradient Descent Convergence
+How do you tune the learning rate alpha using SGD?
+How do you know it's converging if it "wanders around" the min?
+*** Checking for convergence
+Before you update the parameters based on one example, test the cost
+with the current parameters. Then, every ~1000 iterations, plot the
+average cost. See if it's on average going down.
+There are a couple of things to check:
+ - Generally the cost vs. iterations plot will be a bit noisy but
+   generally go down. This is good. It's possible to reduce alpha a
+   little bit and come up with a slightly better result.
+ - If you increase the number you're averaging over to e.g. 5000, you
+   will get a smoother plot, but it might not be enough information.
+ - Sometimes the cost-by-iterations plot will be very noisy and you'll
+   need to increase the sample rate (1000 -> 5000) to get a better
+   smoother picture of what's happening.
+ - As always if the cost goes up by iterations, your algo is diverging
+   and you need a smaller alpha.
+Note that theoretically we *could* slowly decrease alpha over
+   time. eg. alpha = const1 / (iteration number / const2).
+People don't do this because it can be too fiddly - now you have two
+   more parameters to deal with! But you can if you like.
+** Online Learning
+A new technique which is based on learning from a constant live stream
+of data. For example user behaviour on popular websites.
+Basically, as you get a new training sample - say, someone comes to
+your website, and chooses to do (or not do) something - you update
+your standing model with that example, and throw it away. So you're
+not taking this static training set and iterating over it, you're just
+using each training example as it comes in to modify the model. This
+is advantageous as it allows adaption to changing user behaviour. 
+*** Example: Product search
+You have an onilne mobile phone store.
+User searches for "android phone 1080p camera".
+You have 100 phones in store and want to return 10 most likely
+results. What do you do?
+ - For each phone, calculate x. x might consist of the features of the
+   phone, how many words in the search query match the phone's name,
+   how many words match the description, etc etc.
+ - y = 1 if user clicks on the link, 0 otherwise.
+You want to learn p(y=1|x;theta).
+This is called "Predicted CTR (click-through rate)".
+If you can estimate this for every phone, you can give the users the
+best 10 phones to click on.
+So this will give us 10 features per search - one x for each phone
+shown to the user, and one y for whether the user clicked on it or
+not. 
+Again, the difference is that while you could e.g. save away user
+behaviour logs for a few days and then compute a model on that data,
+you may as well do it "online" if you can.
+** Map-reduce & data parallelism
+So far, all these things can/are/could be run on one computer. But
+some of these problems are just too big to run on one computer - it
+would just take too damn long. So what do you do? Map/reduce.
+*** General overview
+Take a problem. Find the bits you can split up. Split them up as
+needed. Calculate on the smaller chunks. Then add the chunks back
+together and do the rest of the calculations.
+Right?
+So in the batch gradient descent example, you have to sum the squared error
+of all training examples. What you can do is split up the training set
+into e.g. 4 pieces, get 4 computers to calculate the sum of the
+squared error for each chunk, then add those chunks back up & do the
+rest of the algorithm (updating theta). See? Cool.
+*** Map-reduce and summation over the training set
+Many learning algorithms can be expressed as computing sums of
+functions over the training set. Whenever the expensive part of your
+algorithm is summing over a large number of features, map/reduce can
+help.
+E.g. the cost function for logistinc regression contains a sum over
+the training set & so do the derivative terms.
+Basically wherever you see the sum() function, you could map/reduce
+it. (Split it up into subsets to crunch the main sets, then shmoosh
+them back together & carry on).
+*** Multi-core machines
+It doesn't have to be physically separate machines. All computers have
+multiple cores. So there's no reason you can't just spawn say 4
+different threads and have it returned.
+There are some linear algebra libraries which can automatically
+parallelise certain problems. (But not many...!).
+
+* 18: Application Example: Photo OCR.
+Here's an example of how a complex ML system can be pulled
+together. We will also talk about the concept of a "pipeline" and how
+it can help to work out which part of the problem to work on
+next. There are also some other hints about ML concepts.
+** Problem description & pipeline.
+So what's Photo OCR?
+Getting computers to read the text which appears in photos we
+take. E.g. license plates, shopfront signs, labels, etc etc etc.
+It must:
+1. Find where the text is in the picture (if at all)
+2. OCR the regions successfully.
+Quite different from scanned documents. Much harder from photos.
+Applications include photo recall, artificial driving, helping the
+blind.
+*** The Pipeline
+1. Text detection. Get a region where there is text.
+2. Character segmentation. Within a text region, find the individual letters.
+3. Character classification. Identify which character is which.
+It's possible to have further steps; you can apply spelling correction as a
+final step, or whatever. But we're going to use the easy version for
+now.
+The point is that there is a process of "modules" in the "pipeline",
+which are their own separate machine learning problems. So the text
+detection module is trained to input an image, identify text, and extract that
+region. The character segmentation module is trained to input a
+region, and find out character breaks, and extract each character,
+which are then individually fed into the character recognition module.
+Deciding on this pipeline is often the biggest decision in an ML
+problem.
+Also provides a relatively straightforward way to divide up the
+workload.
+** Sliding Windows
+So looking at step 1 of the pipeline - text detection. Text detection
+is particularly tricky because you don't know what shape the text
+region is going to be. Let's look at pedestrian detection first to get
+an idea of this.
+*** Pedestrian detection
+Take a street camera view with some people walking around. This isn't
+*that* hard because pedestrians tend to be a similar aspect ratio;
+that is, their ration of height/width on camera is pretty similar
+amongst pedestrians. Note that the size of the rectangle can differ,
+it's the aspect ratio that's the same.
+We might decide that a ratio of 82:36 is representative. So we'd go
+out and find e.g. a bunch of 82x36 pixel images (x) representing
+pedestrians (y=1) and non-pedestrians (y=0). Then we'd train a model
+which could take an 82x36 pixel image patch and determine whether it
+was a picture of a pedestrian or not.
+So how do we apply our image patch classifier to a whole 648x480
+camera image to see if there are any pedestrians anywhere in the
+image? We basically take the top-left corner patch, and run the
+classifier; slide the patch to the right some amount, and run it
+again; etc etc.
+The amount you slide it is called the "step-size" or "stride"
+parameter. 1 pixel often performs best, but is expensive; 4 or 8
+pixels might be ok; etc. 
+What if the pedestrians in your camera image aren't 82x36 pixels? You
+make a bigger image patch, squish it down to 82x36, & off you go. With
+increasingly large image patch sizes.
+*** Text detection
+We can do a similar thing. Let's take a square image patch. Do sliding
+window detection to find square chunks of probably-text. Then we can
+take those square chunks of high-probability and expand them to get
+likely contiguous regions. THEN we can identify likely text regions
+e.g. wide, short regions that look like sentences. Now we've done our
+text region identification, and can cut out those regions to pass down
+the pipeline to our character segmentation system.
+*** 1D sliding window for Character segmentation
+Your positive examples in these images are going to be images where
+the center of the image is the whitespace between two characters.
+We say 1D because we slide the constantly-tall window across a long
+rectangle, left-right.
+** Getting lots of data: Artificial Data Synthesis
+More Data Is Good.
+So there are a few ways we can get heaps of data; we can either invent
+it, or "amplify" our existing training set.
+*** Synthesising data from scratch
+Say you're training a character recognition model. You have a sample
+dataset of photos of text. Can we increase it? 
+We can take fonts! There are thousands of fonts, right? So we might be
+able to take characters from fonts, paste it on a random background
+image. Maybe apply some blurring or affine transformations. If you
+remember which letter was which, you've got a synthesised labelled
+training set.
+This is an example of just inventing data.
+*** Synthesising data by introducing distortion
+We can take our known dataset, and distort them using warps or
+whatever. So we can have one photo of A, and twist it 16 different
+ways. Now we have lots more data!
+You need to pick appropriate and sensible distortions according to
+your dataset and problem domain. So distorting characters makes sense
+for handwriting. You might also "paste" different background noise
+behind voice samples for example.
+Just note that the distortions should make sense. You shouldn't just
+e.g. add random noise to your data.
+*** Things to keep in mind before getting more data
+ * Make sure you have a low bias classifier before you go to all this
+   effort (plot learning curves!). E.g. keep expanding the number of
+   features, or hidden NN units, until you have a low bias classifier,
+   then adding more examples will help.
+ * Ask: "How much work would it be to get 10x as much data as we
+   currently have?". Often the answer is "not that hard"; a few days'
+   work to get 10x the data. In which case, it's worth it. How?
+     * Artificial data sythesis
+     * Collect/label it yourself
+       * So say it takes 10sec for a human to label an example; if we
+         currently have 1,000 examples, how many seconds/hours/days
+         would it take to raise that to 10,000 examples? Often it's
+         not as bad as you think. (in that case: 3.5 8-hr days)
+     * Crowd source: e.g. Mechanical Turk, etc etc. Can be hard to get
+       good-quality labels, but it's an option.
+** Ceiling Analysis: What part of the pipeline to work on next?
+One of the most important parts of developing an ML system is
+determining where and when to spend effort. (Including actual $$ time
+in terms of developer salary or whatever!).
+*** Estimating the errors due to each component of the pipeline
+That's ceiling analysis.
+Taking the example of the Photo OCR thing. Which of the components
+(text detection, character segmentation, char recognition) should you
+spend the most time trying to improve?
+It really helps to have a single, real number which describes the
+performance of the system as a whole. So in Photo OCR it might be
+"what is the percentage of characters present in the image which are
+correctly identified". (but could be whatever).
+So say currently our whole system is 72% accurate.
+What we can do is for example, go through our test set, and manually
+determine all of the text regions. So we are simulating a 100%
+accurate text detection layer.
+Then we'd run the rest of the data through the rest of the
+pipeline. We might end up with a final metric of 89% accuracy. 
+Now let's move on and also provide a 100% accurate char segmentation
+layer. We might then find that the total final score goes up to
+90%. Finally we'd also provide it with a perfect character recog
+layer, leading to a 100% accurate model.
+What does this mean?
+Well, we can work out which layer contributed the most to the final
+score. So in the above example, when we added the perfect text
+detection model, we got an improvement of 17% - a pretty big
+whack. Compare that to when we added the perfect char segmentation
+layer - our score only increased by 1%. So it's pretty clear where
+we'd devote our resources.
+(This is the ceiling - the upper bound on how much improvement you can
+get from each step in the pipeline).
+
+Overall, it's an important step to take in the system, to avoid
+wasting time. Don't trust your gut to tell you which
+feature/component/whatever to work on; always test, test, test!
